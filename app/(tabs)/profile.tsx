@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, Switch, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Switch, TouchableOpacity, Alert, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '../../src/constants/colors';
 import { useMesh } from '../../src/store/meshStore';
@@ -67,6 +67,36 @@ export default function Profile() {
       </View>
 
 
+
+      {/* Paramètres Système / Persistance */}
+      <View style={styles.section}>
+        <Text style={styles.sectionHeader}>VEILLE EN TÂCHE DE FOND</Text>
+        <View style={styles.settingCard}>
+          <View style={styles.settingHeader}>
+            <MaterialCommunityIcons name="battery-off-outline" size={20} color={colors.primary} />
+            <Text style={styles.systemSettingTitle}>OPTIMISATION DE LA BATTERIE</Text>
+          </View>
+          <Text style={styles.settingText}>
+            Pour que le service de détection antivol reste actif 24h/24 en tâche interne, même si le téléphone s'éteint ou si vous quittez l'application, veuillez désactiver l'optimisation pour cette application.
+          </Text>
+          <TouchableOpacity
+            style={styles.settingBtn}
+            onPress={() => {
+              Alert.alert(
+                'Configuration système',
+                "Nous allons ouvrir vos paramètres d'application. Allez dans 'Batterie' (ou 'Optimisation') et sélectionnez 'Non restreint' pour activer la veille permanente.",
+                [
+                  { text: 'Annuler', style: 'cancel' },
+                  { text: 'Configurer', onPress: () => Linking.openSettings() }
+                ]
+              );
+            }}
+          >
+            <MaterialCommunityIcons name="cog-outline" size={14} color={colors.textPrimary} style={{ marginRight: 6 }} />
+            <Text style={styles.settingBtnText}>DÉSACTIVER L'OPTIMISATION</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
       {/* Liste des terminaux sécurisés */}
       <View style={styles.section}>
@@ -390,5 +420,47 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.danger,
     letterSpacing: 1,
+  },
+  settingCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    padding: 16,
+  },
+  settingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  systemSettingTitle: {
+    fontFamily: 'SpaceMono_400Regular',
+    fontSize: 12,
+    color: colors.primary,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  settingText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 11,
+    color: colors.textSecondary,
+    lineHeight: 16,
+    marginBottom: 14,
+  },
+  settingBtn: {
+    backgroundColor: colors.primary + '20',
+    borderColor: colors.primary,
+    borderWidth: 1,
+    height: 40,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  settingBtnText: {
+    fontFamily: 'Orbitron_700Bold',
+    fontSize: 10,
+    color: colors.textPrimary,
+    letterSpacing: 0.5,
   },
 });
