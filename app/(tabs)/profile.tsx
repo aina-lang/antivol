@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, Switch, TouchableOpacity, Alert, Linking, Animated, Dimensions } from 'react-native';
+import React, { useEffect } from 'react';
+import { StyleSheet, View, Text, ScrollView, Switch, TouchableOpacity, Alert, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '../../src/constants/colors';
 import { useMesh } from '../../src/store/meshStore';
@@ -20,59 +20,12 @@ export default function Profile() {
     lostDeviceDetections,
   } = useMesh();
 
-  // Reference de défilement pour les interpolations fluides 60 FPS
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-  // Interpolations pour le Header Collapsing Tactique
-  const headerHeight = scrollY.interpolate({
-    inputRange: [0, 120],
-    outputRange: [220, 100],
-    extrapolate: 'clamp',
-  });
-
-  const headerPaddingTop = scrollY.interpolate({
-    inputRange: [0, 120],
-    outputRange: [50, 42],
-    extrapolate: 'clamp',
-  });
-
-  // Interpolations pour l'Avatar (Middle -> Left + Scale down)
-  const avatarTranslateX = scrollY.interpolate({
-    inputRange: [0, 120],
-    outputRange: [0, 46 - SCREEN_WIDTH / 2],
-    extrapolate: 'clamp',
-  });
-
-  const avatarTranslateY = scrollY.interpolate({
-    inputRange: [0, 120],
-    outputRange: [0, -6],
-    extrapolate: 'clamp',
-  });
-
-  const avatarScale = scrollY.interpolate({
-    inputRange: [0, 120],
-    outputRange: [1, 0.65],
-    extrapolate: 'clamp',
-  });
-
-  // Interpolations pour le fondu enchaîné des textes (Cross-Fade Center -> Left)
-  const expandedOpacity = scrollY.interpolate({
-    inputRange: [0, 80],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
-  });
-
-  const collapsedOpacity = scrollY.interpolate({
-    inputRange: [40, 120],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
-
   // Charger les appareils de l'utilisateur au montage
   useEffect(() => {
     loadMyDevices();
   }, [loadMyDevices]);
+
+
 
   const handleLogout = () => {
     Alert.alert('Déconnexion', 'Voulez-vous fermer la session de ce terminal ?', [
