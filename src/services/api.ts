@@ -37,6 +37,21 @@ export const apiService = {
     return response.data;
   },
 
+  async verifyEmail(email: string, code: string): Promise<any> {
+    const response = await api.post('/auth/verify-email', { email, code });
+    return response.data;
+  },
+
+  async forgotPassword(email: string): Promise<any> {
+    const response = await api.post('/auth/forgot-password', { email });
+    return response.data;
+  },
+
+  async resetPassword(payload: { email: string; code: string; password?: string }): Promise<any> {
+    const response = await api.post('/auth/reset-password', payload);
+    return response.data;
+  },
+
   // --- APPAREILS ---
   // Déclarer un appareil perdu
   async declareLost(deviceId: string, model: string, description?: string): Promise<any> {

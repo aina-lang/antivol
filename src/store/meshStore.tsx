@@ -31,7 +31,10 @@ interface MeshContextType {
   currentLocation: LocationCoords | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<any>;
+  verifyEmail: (email: string, code: string) => Promise<any>;
+  forgotPassword: (email: string) => Promise<any>;
+  resetPassword: (payload: { email: string; code: string; password?: string }) => Promise<any>;
   logout: () => Promise<void>;
   loadMyDevices: () => Promise<void>;
   declareDeviceLost: (deviceId: string, model: string, description?: string) => Promise<void>;
@@ -92,7 +95,7 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const data = await apiService.login(email, password);
       setUser(data.user);
-      await authService.setToken(data.token);
+      await authService.setToken(data.accessToken || data.token);
       await authService.setUserData(data.user);
       // Charger les appareils après connexion
       const myDevices = await apiService.getMyDevices().catch(() => []);
@@ -108,11 +111,43 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       const data = await apiService.register(name, email, password);
-      setUser(data.user);
-      await authService.setToken(data.token);
-      await authService.setUserData(data.user);
+      return data;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || "Erreur lors de l'inscription");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const verifyEmail = async (email: string, code: string) => {
+    setIsLoading(true);
+    try {
+      const data = await apiService.verifyEmail(email, code);
+      return data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Code OTP de validation invalide');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const forgotPassword = async (email: string) => {
+    setIsLoading(true);
+    try {
+      return await apiService.forgotPassword(email);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Erreur de demande de réinitialisation');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetPassword = async (payload: { email: string; code: string; password?: string }) => {
+    setIsLoading(true);
+    try {
+      return await apiService.resetPassword(payload);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Erreur de réinitialisation de mot de passe');
     } finally {
       setIsLoading(false);
     }
@@ -181,6 +216,9 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         register,
+        verifyEmail,
+        forgotPassword,
+        resetPassword,
         logout,
         loadMyDevices,
         declareDeviceLost,

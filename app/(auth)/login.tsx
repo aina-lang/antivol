@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -21,6 +21,8 @@ export default function Login() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const { login, isLoading } = useMesh();
   const router = useRouter();
+
+  const passwordRef = useRef<TextInput>(null);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -70,12 +72,16 @@ export default function Login() {
             autoCapitalize="none"
             value={email}
             onChangeText={setEmail}
+            returnKeyType="next"
+            onSubmitEditing={() => passwordRef.current?.focus()}
+            blurOnSubmit={false}
           />
         </View>
 
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>MOT DE PASSE</Text>
           <TextInput
+            ref={passwordRef}
             style={styles.input}
             placeholder="••••••••••••"
             placeholderTextColor={colors.textMuted}
@@ -83,6 +89,8 @@ export default function Login() {
             autoCapitalize="none"
             value={password}
             onChangeText={setPassword}
+            returnKeyType="done"
+            onSubmitEditing={handleLogin}
           />
         </View>
 

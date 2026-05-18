@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,43 +9,49 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '../../src/constants/colors';
 import { useMesh } from '../../src/store/meshStore';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export default function Register() {
-  const [name, setName] = useState('');
+export default function VerifyOtp() {
+  const params = useLocalSearchParams();
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [code, setCode] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const { register, isLoading } = useMesh();
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const { verifyEmail, isLoading } = useMesh();
   const router = useRouter();
 
-  const emailRef = useRef<TextInput>(null);
-  const passwordRef = useRef<TextInput>(null);
-  const confirmPasswordRef = useRef<TextInput>(null);
+  const codeRef = useRef<TextInput>(null);
 
-  const handleRegister = async () => {
-    if (!name || !email || !password || !confirmPassword) {
+  // Prefill email if coming from register screen
+  useEffect(() => {
+    if (params.email) {
+      setEmail(params.email as string);
+    }
+  }, [params.email]);
+
+  const handleVerify = async () => {
+    if (!email || !code) {
       setErrorMsg('Veuillez remplir tous les champs.');
       return;
     }
-    if (password !== confirmPassword) {
-      setErrorMsg('Les mots de passe ne correspondent pas.');
+    if (code.length !== 6) {
+      setErrorMsg('Le code OTP doit comporter 6 chiffres.');
       return;
     }
     setErrorMsg(null);
+    setSuccessMsg(null);
     try {
-      await register(name, email, password);
-      router.push({
-        pathname: '/(auth)/verify-otp',
-        params: { email },
-      });
+      await verifyEmail(email, code);
+      setSuccessMsg('Email validé avec succès ! Redirection vers la connexion...');
+      setTimeout(() => {
+        router.replace('/(auth)/login');
+      }, 2000);
     } catch (e: any) {
-      setErrorMsg(e.message || "Échec de l'inscription.");
+      setErrorMsg(e.message || 'Validation échouée. Code OTP invalide ou expiré.');
     }
   };
 
@@ -57,7 +63,7 @@ export default function Register() {
 
       <View style={styles.header}>
         <Text style={styles.brandTitle}>MESH//FIND</Text>
-        <Text style={styles.subTitle}>CRÉER UN ACCÈS RENSEIGNEMENT</Text>
+        <Text style={styles.subTitle}>VALIDATION DU CANAL SÉCURISÉ</Text>
       </View>
 
       <View style={styles.form}>
@@ -73,25 +79,21 @@ export default function Register() {
           </View>
         )}
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>NOM D’OPÉRATEUR</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Jean Dupont"
-            placeholderTextColor={colors.textMuted}
-            autoCapitalize="words"
-            value={name}
-            onChangeText={setName}
-            returnKeyType="next"
-            onSubmitEditing={() => emailRef.current?.focus()}
-            blurOnSubmit={false}
-          />
-        </View>
+        {successMsg && (
+          <View style={styles.successBox}>
+            <MaterialCommunityIcons
+              name="check-circle-outline"
+              size={16}
+              color={colors.success || '#00E676'}
+              style={{ marginRight: 8 }}
+            />
+            <Text style={styles.successText}>{successMsg}</Text>
+          </View>
+        )}
 
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>EMAIL ADRESSE</Text>
           <TextInput
-            ref={emailRef}
             style={styles.input}
             placeholder="operateur@meshfind.net"
             placeholderTextColor={colors.textMuted}
@@ -100,58 +102,42 @@ export default function Register() {
             value={email}
             onChangeText={setEmail}
             returnKeyType="next"
-            onSubmitEditing={() => passwordRef.current?.focus()}
+            onSubmitEditing={() => codeRef.current?.focus()}
             blurOnSubmit={false}
           />
         </View>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>MOT DE PASSE (MINIMUM 6 CARACTÈRES)</Text>
+          <Text style={styles.inputLabel}>CODE DE VALIDATION OTP (6 CHIFFRES)</Text>
           <TextInput
-            ref={passwordRef}
+            ref={codeRef}
             style={styles.input}
-            placeholder="••••••••••••"
+            placeholder="123456"
             placeholderTextColor={colors.textMuted}
-            secureTextEntry
+            keyboardType="number-pad"
+            maxLength={6}
             autoCapitalize="none"
-            value={password}
-            onChangeText={setPassword}
-            returnKeyType="next"
-            onSubmitEditing={() => confirmPasswordRef.current?.focus()}
-            blurOnSubmit={false}
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>CONFIRMER LE MOT DE PASSE</Text>
-          <TextInput
-            ref={confirmPasswordRef}
-            style={styles.input}
-            placeholder="••••••••••••"
-            placeholderTextColor={colors.textMuted}
-            secureTextEntry
-            autoCapitalize="none"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
+            value={code}
+            onChangeText={setCode}
             returnKeyType="done"
-            onSubmitEditing={handleRegister}
+            onSubmitEditing={handleVerify}
           />
         </View>
 
         <TouchableOpacity
-          style={[styles.registerButton, isLoading ? styles.buttonDisabled : null]}
-          onPress={handleRegister}
+          style={[styles.verifyButton, isLoading ? styles.buttonDisabled : null]}
+          onPress={handleVerify}
           disabled={isLoading}>
           {isLoading ? (
             <ActivityIndicator color={colors.background} />
           ) : (
-            <Text style={styles.registerButtonText}>GÉNÉRER L’ACCÈS RÉSEAU</Text>
+            <Text style={styles.verifyButtonText}>ACTIVER LE TERMINAL</Text>
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.loginLink} onPress={() => router.push('/(auth)/login')}>
-          <Text style={styles.loginLinkText}>
-            Déjà inscrit ? <Text style={{ color: colors.primary }}>SE CONNECTER</Text>
+        <TouchableOpacity style={styles.backLink} onPress={() => router.push('/(auth)/login')}>
+          <Text style={styles.backLinkText}>
+            Retourner à <Text style={{ color: colors.primary }}>LA CONNEXION</Text>
           </Text>
         </TouchableOpacity>
       </View>
@@ -168,8 +154,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 36,
-    marginTop: 40,
+    marginBottom: 48,
   },
   brandTitle: {
     fontFamily: 'Orbitron_700Bold',
@@ -196,7 +181,7 @@ const styles = StyleSheet.create({
     borderColor: colors.danger,
     borderRadius: 6,
     padding: 12,
-    marginBottom: 16,
+    marginBottom: 20,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -206,19 +191,35 @@ const styles = StyleSheet.create({
     color: colors.danger,
     flex: 1,
   },
+  successBox: {
+    backgroundColor: (colors.success || '#00E676') + '20',
+    borderWidth: 1,
+    borderColor: colors.success || '#00E676',
+    borderRadius: 6,
+    padding: 12,
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  successText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 12,
+    color: colors.success || '#00E676',
+    flex: 1,
+  },
   inputContainer: {
-    marginBottom: 16,
+    marginBottom: 24,
   },
   inputLabel: {
     fontFamily: 'Orbitron_700Bold',
     fontSize: 9,
     color: colors.textSecondary,
-    marginBottom: 6,
+    marginBottom: 8,
     letterSpacing: 1.5,
   },
   input: {
     width: '100%',
-    height: 48,
+    height: 50,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
@@ -228,7 +229,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textPrimary,
   },
-  registerButton: {
+  verifyButton: {
     width: '100%',
     height: 52,
     backgroundColor: colors.primary,
@@ -245,18 +246,17 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.6,
   },
-  registerButtonText: {
+  verifyButtonText: {
     fontFamily: 'Orbitron_700Bold',
     fontSize: 12,
     color: colors.background,
     letterSpacing: 1,
   },
-  loginLink: {
-    marginTop: 20,
+  backLink: {
+    marginTop: 24,
     alignItems: 'center',
-    marginBottom: 20,
   },
-  loginLinkText: {
+  backLinkText: {
     fontFamily: 'Inter_400Regular',
     fontSize: 12,
     color: colors.textSecondary,
