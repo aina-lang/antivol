@@ -182,10 +182,10 @@ export default function Dashboard() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <View style={styles.container}>
       <StatusBar style="light" />
 
-      {/* Header Tactique */}
+      {/* Header Tactique Fixe */}
       <View style={styles.header}>
         <View>
           <Text style={styles.welcomeText}>OPÉRATEUR MESH</Text>
@@ -196,72 +196,74 @@ export default function Dashboard() {
         </TouchableOpacity>
       </View>
 
-      {/* Badge de statut pulsant */}
-      <View style={styles.badgeWrapper}>
-        <StatusBadge isActive={isServiceActive} protectedCount={protectedCount} />
-      </View>
-
-      {/* Section Centrale Radar */}
-      <View style={styles.radarSection}>
-        <TouchableOpacity onPress={handleRadarPress} activeOpacity={0.8}>
-          <RadarScanner devicesCount={protectedCount} isActive={isServiceActive} />
-        </TouchableOpacity>
-        <Text style={styles.radarHint}>
-          {isServiceActive
-            ? 'TAPOTEZ LE RADAR POUR PASSER HORS-LIGNE'
-            : 'TAPOTEZ LE RADAR POUR DÉMARRER LA SURVEILLANCE'}
-        </Text>
-      </View>
-
-      {/* Cartes d'alertes BLE détectées en temps réel à proximité */}
-      {detectedDevices.length > 0 && (
-        <View style={styles.alertSection}>
-          <Text style={styles.sectionTitle}>ALERTES INTERCEPTÉES À PROXIMITÉ</Text>
-          {detectedDevices.map((device, idx) => (
-            <BleSignalCard
-              key={`${device.bleId}-${idx}`}
-              bleId={device.bleId}
-              rssi={device.rssi}
-              timestamp={device.timestamp}
-            />
-          ))}
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
+        {/* Badge de statut pulsant */}
+        <View style={styles.badgeWrapper}>
+          <StatusBadge isActive={isServiceActive} protectedCount={protectedCount} />
         </View>
-      )}
 
-      {/* Mini-carte Tactique */}
-      {!isVictim && (
-        <View style={styles.mapSection}>
-          <Text style={styles.sectionTitle}>COUVERTURE GÉO-TACTIQUE ACTUELLE</Text>
-          <View style={styles.mapWrapper}>
-            {currentLocation || mapCenter.hasDetections ? (
-              <MapView
-                latitude={mapCenter.lat}
-                longitude={mapCenter.lng}
-                accuracy={mapCenter.accuracy}
-                markers={allMarkers}
-                zoom={mapCenter.hasDetections ? 18 : 15}
-                isLoading={mapLoading}
+        {/* Section Centrale Radar */}
+        <View style={styles.radarSection}>
+          <TouchableOpacity onPress={handleRadarPress} activeOpacity={0.8}>
+            <RadarScanner devicesCount={protectedCount} isActive={isServiceActive} />
+          </TouchableOpacity>
+          <Text style={styles.radarHint}>
+            {isServiceActive
+              ? 'TAPOTEZ LE RADAR POUR PASSER HORS-LIGNE'
+              : 'TAPOTEZ LE RADAR POUR DÉMARRER LA SURVEILLANCE'}
+          </Text>
+        </View>
+
+        {/* Cartes d'alertes BLE détectées en temps réel à proximité */}
+        {detectedDevices.length > 0 && (
+          <View style={styles.alertSection}>
+            <Text style={styles.sectionTitle}>ALERTES INTERCEPTÉES À PROXIMITÉ</Text>
+            {detectedDevices.map((device, idx) => (
+              <BleSignalCard
+                key={`${device.bleId}-${idx}`}
+                bleId={device.bleId}
+                rssi={device.rssi}
+                timestamp={device.timestamp}
               />
-            ) : (
-              <View style={styles.noGpsWrapper}>
-                <Text style={styles.noGpsText}>RECHERCHE DE SIGNAL GPS...</Text>
-              </View>
-            )}
+            ))}
           </View>
-        </View>
-      )}
+        )}
 
-      {/* Bouton Proéminent Déclarer Perdu */}
-      <TouchableOpacity style={styles.lostButton} onPress={() => router.push('/declare-lost')}>
-        <MaterialCommunityIcons
-          name="alert-decagram"
-          size={18}
-          color={colors.textPrimary}
-          style={{ marginRight: 8 }}
-        />
-        <Text style={styles.lostButtonText}>DÉCLARER UN TÉLÉPHONE VOLÉ / PERDU</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        {/* Mini-carte Tactique */}
+        {!isVictim && (
+          <View style={styles.mapSection}>
+            <Text style={styles.sectionTitle}>COUVERTURE GÉO-TACTIQUE ACTUELLE</Text>
+            <View style={styles.mapWrapper}>
+              {currentLocation || mapCenter.hasDetections ? (
+                <MapView
+                  latitude={mapCenter.lat}
+                  longitude={mapCenter.lng}
+                  accuracy={mapCenter.accuracy}
+                  markers={allMarkers}
+                  zoom={mapCenter.hasDetections ? 18 : 15}
+                  isLoading={mapLoading}
+                />
+              ) : (
+                <View style={styles.noGpsWrapper}>
+                  <Text style={styles.noGpsText}>RECHERCHE DE SIGNAL GPS...</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* Bouton Proéminent Déclarer Perdu */}
+        <TouchableOpacity style={styles.lostButton} onPress={() => router.push('/declare-lost')}>
+          <MaterialCommunityIcons
+            name="alert-decagram"
+            size={18}
+            color={colors.textPrimary}
+            style={{ marginRight: 8 }}
+          />
+          <Text style={styles.lostButtonText}>DÉCLARER UN TÉLÉPHONE VOLÉ / PERDU</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -270,16 +272,26 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  content: {
+  scrollContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 50,
+    paddingTop: 15,
     paddingBottom: 40,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 15,
+    backgroundColor: colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    zIndex: 10,
   },
   welcomeText: {
     fontFamily: 'Orbitron_700Bold',
