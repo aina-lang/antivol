@@ -1,5 +1,6 @@
 import * as TaskManager from 'expo-task-manager';
 import * as SecureStore from 'expo-secure-store';
+import * as Notifications from 'expo-notifications';
 import { config } from '../constants/config';
 import { bleScannerService } from './bleScanner';
 import { apiService } from '../services/api';
@@ -149,6 +150,21 @@ TaskManager.defineTask(config.MESH_MAIN_TASK, async ({ data, error }) => {
           });
           await SecureStore.setItemAsync(REPORTED_CACHE_KEY, JSON.stringify(reportedCache));
           console.log(`✅ [UPLOAD] Détection enregistrée pour "${deviceIdentifier}".`);
+
+          // Alerter le Helper par une notification locale tactile !
+          try {
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: '🚨 Radar communautaire : Succès !',
+                body: `Merci ! Votre radar vient d'aider à localiser l'appareil perdu "${deviceIdentifier}" à proximité.`,
+                sound: true,
+                priority: Notifications.AndroidNotificationPriority.HIGH,
+              },
+              trigger: null,
+            });
+          } catch (notifError) {
+            console.warn('Impossible de déclencher la notification du Helper:', notifError);
+          }
         } catch (uploadError) {
           console.error(
             `❌ Échec de l'upload de la détection pour "${deviceIdentifier}":`,
