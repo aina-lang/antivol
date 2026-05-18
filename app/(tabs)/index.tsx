@@ -239,6 +239,7 @@ export default function Dashboard() {
                 longitude={mapCenter.lng}
                 accuracy={mapCenter.accuracy}
                 markers={allMarkers}
+                zoom={mapCenter.hasDetections ? 18 : 15}
                 isLoading={mapLoading}
               />
             ) : (

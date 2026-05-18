@@ -119,7 +119,7 @@ export default function FollowMap() {
             longitude={mapCenter?.lng || currentLocation?.longitude || 47.5079}
             accuracy={mapCenter?.accuracy || currentLocation?.accuracy || 20}
             markers={markers}
-            zoom={selectedDeviceName ? 16 : 14}
+            zoom={selectedDeviceName ? 18 : 14}
             isLoading={loadingHistory}
           />
         ) : (
