@@ -19,7 +19,7 @@ import { colors } from '../src/constants/colors';
 SplashScreen.preventAutoHideAsync();
 
 function NavigationGuard() {
-  const { user, isLoading } = useMesh();
+  const { user, isLoading, hasSeenOnboarding } = useMesh();
   const segments = useSegments();
   const router = useRouter();
 
@@ -28,15 +28,19 @@ function NavigationGuard() {
 
     const inAuthGroup = segments[0] === '(auth)';
 
-    // Router guard logique
-    if (!user && !inAuthGroup && segments[0] !== 'onboarding') {
-      // Rediriger vers l'onboarding si l'utilisateur n'est pas connecté
-      router.replace('/onboarding');
+    if (!user) {
+      if (!hasSeenOnboarding && segments[0] !== 'onboarding') {
+        // Rediriger vers l'onboarding si l'utilisateur n'a jamais vu l'onboarding
+        router.replace('/onboarding');
+      } else if (hasSeenOnboarding && !inAuthGroup) {
+        // Rediriger vers le login si pas connecté et pas déjà dans le groupe d'auth
+        router.replace('/(auth)/login');
+      }
     } else if (user && (inAuthGroup || segments[0] === 'onboarding')) {
       // Rediriger vers le dashboard si déjà connecté
       router.replace('/(tabs)');
     }
-  }, [user, isLoading, segments, router]);
+  }, [user, isLoading, hasSeenOnboarding, segments, router]);
 
   if (isLoading) {
     return (

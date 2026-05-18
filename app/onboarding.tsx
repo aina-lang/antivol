@@ -5,12 +5,14 @@ import { StatusBar } from 'expo-status-bar';
 import { colors } from '../src/constants/colors';
 import { RadarScanner } from '../src/components/RadarScanner';
 import { useLocation } from '../src/hooks/useLocation';
+import { useMesh } from '../src/store/meshStore';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function Onboarding() {
   const [currentStep, setCurrentStep] = useState(0);
   const router = useRouter();
   const { requestPermissions } = useLocation();
+  const { completeOnboarding } = useMesh();
   const { width } = useWindowDimensions();
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -19,6 +21,8 @@ export default function Onboarding() {
       // Étape 3 : Demander les permissions
       const granted = await requestPermissions();
       console.log('Permissions accordées ?', granted);
+      // Marquer l'onboarding comme complété
+      await completeOnboarding();
       // Poursuivre vers l'authentification
       router.push('/(auth)/login');
     } else {
@@ -29,7 +33,8 @@ export default function Onboarding() {
     }
   };
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
+    await completeOnboarding();
     router.push('/(auth)/login');
   };
 

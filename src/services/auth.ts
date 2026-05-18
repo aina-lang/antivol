@@ -2,8 +2,19 @@ import * as SecureStore from 'expo-secure-store';
 
 const TOKEN_KEY = 'meshfind_jwt_token';
 const USER_KEY = 'meshfind_user_data';
+const ONBOARDING_SEEN_KEY = 'meshfind_onboarding_seen';
 
 export const authService = {
+  // Stocker le statut de l'onboarding
+  async setOnboardingSeen(): Promise<void> {
+    await SecureStore.setItemAsync(ONBOARDING_SEEN_KEY, 'true');
+  },
+
+  // Récupérer le statut de l'onboarding
+  async getOnboardingSeen(): Promise<boolean> {
+    const val = await SecureStore.getItemAsync(ONBOARDING_SEEN_KEY);
+    return val === 'true';
+  },
   // Stocker le token de manière sécurisée
   async setToken(token: string): Promise<void> {
     await SecureStore.setItemAsync(TOKEN_KEY, token);

@@ -29,6 +29,8 @@ interface MeshContextType {
   isServiceActive: boolean;
   alerts: MeshAlert[];
   currentLocation: LocationCoords | null;
+  hasSeenOnboarding: boolean;
+  completeOnboarding: () => Promise<void>;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<any>;
@@ -53,6 +55,7 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isServiceActive, setIsServiceActive] = useState<boolean>(true);
   const [alerts, setAlerts] = useState<MeshAlert[]>([]);
   const [currentLocation, setCurrentLocation] = useState<LocationCoords | null>(null);
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Charger la session utilisateur au démarrage
@@ -61,6 +64,8 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const storedUser = await authService.getUserData();
         const storedToken = await authService.getToken();
+        const seen = await authService.getOnboardingSeen();
+        setHasSeenOnboarding(seen);
         if (storedUser && storedToken) {
           setUser(storedUser);
           // Charger ses appareils s'il est connecté
@@ -153,6 +158,11 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const completeOnboarding = async () => {
+    await authService.setOnboardingSeen();
+    setHasSeenOnboarding(true);
+  };
+
   const logout = async () => {
     await authService.clearAll();
     setUser(null);
@@ -213,6 +223,8 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isServiceActive,
         alerts,
         currentLocation,
+        hasSeenOnboarding,
+        completeOnboarding,
         isLoading,
         login,
         register,
