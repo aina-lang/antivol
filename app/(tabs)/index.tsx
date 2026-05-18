@@ -78,7 +78,7 @@ export default function Dashboard() {
           <Text style={styles.userName}>{user?.name || 'ANONYME'}</Text>
         </View>
         <TouchableOpacity style={styles.signalBadge} onPress={() => router.push('/(tabs)/profile')}>
-          <Text style={styles.signalText}>ID: {user?.id?.substring(0, 8) || 'OFF'} </Text>
+          <Text style={styles.signalText}>ID: {user?.id ? String(user.id).substring(0, 8) : 'OFF'} </Text>
         </TouchableOpacity>
       </View>
 
