@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, Switch, TouchableOpacity, Alert, Linking } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { StyleSheet, View, Text, Switch, TouchableOpacity, Alert, Linking, Animated, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '../../src/constants/colors';
 import { useMesh } from '../../src/store/meshStore';
@@ -20,12 +20,59 @@ export default function Profile() {
     lostDeviceDetections,
   } = useMesh();
 
+  // Reference de défilement pour les interpolations fluides 60 FPS
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+  // Interpolations pour le Header Collapsing Tactique
+  const headerHeight = scrollY.interpolate({
+    inputRange: [0, 120],
+    outputRange: [220, 100],
+    extrapolate: 'clamp',
+  });
+
+  const headerPaddingTop = scrollY.interpolate({
+    inputRange: [0, 120],
+    outputRange: [50, 42],
+    extrapolate: 'clamp',
+  });
+
+  // Interpolations pour l'Avatar (Middle -> Left + Scale down)
+  const avatarTranslateX = scrollY.interpolate({
+    inputRange: [0, 120],
+    outputRange: [0, 46 - SCREEN_WIDTH / 2],
+    extrapolate: 'clamp',
+  });
+
+  const avatarTranslateY = scrollY.interpolate({
+    inputRange: [0, 120],
+    outputRange: [0, -6],
+    extrapolate: 'clamp',
+  });
+
+  const avatarScale = scrollY.interpolate({
+    inputRange: [0, 120],
+    outputRange: [1, 0.65],
+    extrapolate: 'clamp',
+  });
+
+  // Interpolations pour le fondu enchaîné des textes (Cross-Fade Center -> Left)
+  const expandedOpacity = scrollY.interpolate({
+    inputRange: [0, 80],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+
+  const collapsedOpacity = scrollY.interpolate({
+    inputRange: [40, 120],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+
   // Charger les appareils de l'utilisateur au montage
   useEffect(() => {
     loadMyDevices();
   }, [loadMyDevices]);
-
-
 
   const handleLogout = () => {
     Alert.alert('Déconnexion', 'Voulez-vous fermer la session de ce terminal ?', [
@@ -53,10 +100,10 @@ export default function Profile() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <View style={styles.container}>
       <StatusBar style="light" />
 
-      {/* Profil de l'Opérateur */}
+      {/* Profil de l'Opérateur Fixe */}
       <View style={styles.profileSection}>
         <View style={styles.avatar}>
           <MaterialCommunityIcons name="shield-account" size={42} color={colors.primary} />
@@ -66,160 +113,160 @@ export default function Profile() {
         <Text style={styles.profileEmail}>{user?.email || 'pas-de-mail@meshfind.net'}</Text>
       </View>
 
-
-
-      {/* Paramètres Système / Persistance */}
-      <View style={styles.section}>
-        <Text style={styles.sectionHeader}>VEILLE EN TÂCHE DE FOND</Text>
-        <View style={styles.settingCard}>
-          <View style={styles.settingHeader}>
-            <MaterialCommunityIcons name="battery-off-outline" size={20} color={colors.primary} />
-            <Text style={styles.systemSettingTitle}>OPTIMISATION DE LA BATTERIE</Text>
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
+        {/* Paramètres Système / Persistance */}
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>VEILLE EN TÂCHE DE FOND</Text>
+          <View style={styles.settingCard}>
+            <View style={styles.settingHeader}>
+              <MaterialCommunityIcons name="battery-off-outline" size={20} color={colors.primary} />
+              <Text style={styles.systemSettingTitle}>OPTIMISATION DE LA BATTERIE</Text>
+            </View>
+            <Text style={styles.settingText}>
+              Pour que le service de détection antivol reste actif 24h/24 en tâche interne, même si le téléphone s'éteint ou si vous quittez l'application, veuillez désactiver l'optimisation pour cette application.
+            </Text>
+            <TouchableOpacity
+              style={styles.settingBtn}
+              onPress={() => {
+                Alert.alert(
+                  'Configuration système',
+                  "Nous allons ouvrir vos paramètres d'application. Allez dans 'Batterie' (ou 'Optimisation') et sélectionnez 'Non restreint' pour activer la veille permanente.",
+                  [
+                    { text: 'Annuler', style: 'cancel' },
+                    { text: 'Configurer', onPress: () => Linking.openSettings() }
+                  ]
+                );
+              }}
+            >
+              <MaterialCommunityIcons name="cog-outline" size={14} color={colors.textPrimary} style={{ marginRight: 6 }} />
+              <Text style={styles.settingBtnText}>DÉSACTIVER L'OPTIMISATION</Text>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.settingText}>
-            Pour que le service de détection antivol reste actif 24h/24 en tâche interne, même si le téléphone s'éteint ou si vous quittez l'application, veuillez désactiver l'optimisation pour cette application.
-          </Text>
-          <TouchableOpacity
-            style={styles.settingBtn}
-            onPress={() => {
-              Alert.alert(
-                'Configuration système',
-                "Nous allons ouvrir vos paramètres d'application. Allez dans 'Batterie' (ou 'Optimisation') et sélectionnez 'Non restreint' pour activer la veille permanente.",
-                [
-                  { text: 'Annuler', style: 'cancel' },
-                  { text: 'Configurer', onPress: () => Linking.openSettings() }
-                ]
-              );
-            }}
-          >
-            <MaterialCommunityIcons name="cog-outline" size={14} color={colors.textPrimary} style={{ marginRight: 6 }} />
-            <Text style={styles.settingBtnText}>DÉSACTIVER L'OPTIMISATION</Text>
-          </TouchableOpacity>
         </View>
-      </View>
 
-      {/* Liste des terminaux sécurisés */}
-      <View style={styles.section}>
-        <Text style={styles.sectionHeader}>MES APPAREILS SÉCURISÉS</Text>
-        {devices.length === 0 ? (
-          <View style={styles.emptyBox}>
-            <Text style={styles.emptyText}>Aucun appareil déclaré sous cet identifiant.</Text>
-          </View>
-        ) : (
-          devices.map((dev) => (
-            <View key={dev.id} style={styles.deviceCard}>
-              <View style={styles.deviceHeader}>
-                <View>
-                  <Text style={styles.deviceModel}>{dev.model.toUpperCase()}</Text>
-                  <Text style={styles.deviceId} numberOfLines={1}>
-                    ID: {dev.id}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.statusIndicator,
-                    { backgroundColor: dev.isLost ? colors.danger : colors.success },
-                  ]}>
-                  <Text style={styles.statusText}>{dev.isLost ? 'RECHERCHÉ' : 'SÉCURISÉ'}</Text>
-                </View>
-              </View>
-
-              {!dev.isLost && (
-                <TouchableOpacity
-                  style={styles.lostBtn}
-                  onPress={() => {
-                    Alert.alert(
-                      'Déclaration de vol',
-                      `Voulez-vous déclarer votre ${dev.model} comme perdu sur le réseau Mesh ?`,
-                      [
-                        { text: 'Annuler', style: 'cancel' },
-                        {
-                          text: 'Déclarer Perdu',
-                          style: 'destructive',
-                          onPress: () => declareDeviceLost(),
-                        },
-                      ]
-                    );
-                  }}>
-                  <MaterialCommunityIcons
-                    name="alert"
-                    size={14}
-                    color={colors.textPrimary}
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text style={styles.lostBtnText}>SIGNALER APPAREIL PERDU / VOLÉ</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          ))
-        )}
-      </View>
-
-      {/* Journal des alertes ou détections */}
-      <View style={styles.section}>
-        <Text style={styles.sectionHeader}>
-          {isVictim ? 'JOURNAL DES DÉTECTIONS DE VOTRE APPAREIL' : 'JOURNAL DES INTERCEPTIONS'}
-        </Text>
-        {isVictim ? (
-          (lostDeviceDetections || []).length === 0 ? (
+        {/* Liste des terminaux sécurisés */}
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>MES APPAREILS SÉCURISÉS</Text>
+          {devices.length === 0 ? (
             <View style={styles.emptyBox}>
-              <Text style={styles.emptyText}>Aucun signal de détection reçu du réseau communautaire pour le moment.</Text>
+              <Text style={styles.emptyText}>Aucun appareil déclaré sous cet identifiant.</Text>
             </View>
           ) : (
-            lostDeviceDetections.map((det) => {
-              const dateStr = new Date(parseInt(det.timestamp)).toLocaleString('fr-FR', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                day: 'numeric',
-                month: 'short',
-              });
-              return (
-                <TouchableOpacity
-                  key={det.id}
-                  style={[styles.alertLog, { borderLeftColor: colors.danger }]}
-                  onPress={() => handleDetectionPress(det)}
-                >
-                  <View style={styles.alertHeader}>
-                    <Text style={[styles.alertLogTitle, { color: colors.danger }]}>🚨 SIGNAL REÇU</Text>
-                    <Text style={styles.alertLogTime}>{dateStr}</Text>
+            devices.map((dev) => (
+              <View key={dev.id} style={styles.deviceCard}>
+                <View style={styles.deviceHeader}>
+                  <View>
+                    <Text style={styles.deviceModel}>{dev.model.toUpperCase()}</Text>
+                    <Text style={styles.deviceId} numberOfLines={1}>
+                      ID: {dev.id}
+                    </Text>
                   </View>
-                  <Text style={styles.alertLogBody}>
-                    Votre appareil a été localisé à Madagascar (Précision : {Math.round(det.accuracy)}m). Tapotez pour afficher la position exacte sur la carte tactique.
-                  </Text>
-                </TouchableOpacity>
-              );
-            })
-          )
-        ) : (
-          alerts.length === 0 ? (
-            <View style={styles.emptyBox}>
-              <Text style={styles.emptyText}>Aucun signal d’alerte détecté récemment.</Text>
-            </View>
-          ) : (
-            alerts.map((al) => (
-              <TouchableOpacity key={al.id} style={styles.alertLog} onPress={() => handleAlertPress(al)}>
-                <View style={styles.alertHeader}>
-                  <Text style={styles.alertLogTitle}>{al.title.toUpperCase()}</Text>
-                  <Text style={styles.alertLogTime}>
-                    {new Date(al.timestamp).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </Text>
+                  <View
+                    style={[
+                      styles.statusIndicator,
+                      { backgroundColor: dev.isLost ? colors.danger : colors.success },
+                    ]}>
+                    <Text style={styles.statusText}>{dev.isLost ? 'RECHERCHÉ' : 'SÉCURISÉ'}</Text>
+                  </View>
                 </View>
-                <Text style={styles.alertLogBody}>{al.body}</Text>
-              </TouchableOpacity>
-            ))
-          )
-        )}
-      </View>
 
-      {/* Bouton Déconnexion */}
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Text style={styles.logoutText}>DÉCONNEXION DU TERMINAL</Text>
-      </TouchableOpacity>
-    </ScrollView>
+                {!dev.isLost && (
+                  <TouchableOpacity
+                    style={styles.lostBtn}
+                    onPress={() => {
+                      Alert.alert(
+                        'Déclaration de vol',
+                        `Voulez-vous déclarer votre ${dev.model} comme perdu sur le réseau Mesh ?`,
+                        [
+                          { text: 'Annuler', style: 'cancel' },
+                          {
+                            text: 'Déclarer Perdu',
+                            style: 'destructive',
+                            onPress: () => declareDeviceLost(),
+                          },
+                        ]
+                      );
+                    }}>
+                    <MaterialCommunityIcons
+                      name="alert"
+                      size={14}
+                      color={colors.textPrimary}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text style={styles.lostBtnText}>SIGNALER APPAREIL PERDU / VOLÉ</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ))
+          )}
+        </View>
+
+        {/* Journal des alertes ou détections */}
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>
+            {isVictim ? 'JOURNAL DES DÉTECTIONS DE VOTRE APPAREIL' : 'JOURNAL DES INTERCEPTIONS'}
+          </Text>
+          {isVictim ? (
+            (lostDeviceDetections || []).length === 0 ? (
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptyText}>Aucun signal de détection reçu du réseau communautaire pour le moment.</Text>
+              </View>
+            ) : (
+              lostDeviceDetections.map((det) => {
+                const dateStr = new Date(parseInt(det.timestamp)).toLocaleString('fr-FR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                  day: 'numeric',
+                  month: 'short',
+                });
+                return (
+                  <TouchableOpacity
+                    key={det.id}
+                    style={[styles.alertLog, { borderLeftColor: colors.danger }]}
+                    onPress={() => handleDetectionPress(det)}
+                  >
+                    <View style={styles.alertHeader}>
+                      <Text style={[styles.alertLogTitle, { color: colors.danger }]}>🚨 SIGNAL REÇU</Text>
+                      <Text style={styles.alertLogTime}>{dateStr}</Text>
+                    </View>
+                    <Text style={styles.alertLogBody}>
+                      Votre appareil a été localisé à Madagascar (Précision : {Math.round(det.accuracy)}m). Tapotez pour afficher la position exacte sur la carte tactique.
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })
+            )
+          ) : (
+            alerts.length === 0 ? (
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptyText}>Aucun signal d’alerte détecté récemment.</Text>
+              </View>
+            ) : (
+              alerts.map((al) => (
+                <TouchableOpacity key={al.id} style={styles.alertLog} onPress={() => handleAlertPress(al)}>
+                  <View style={styles.alertHeader}>
+                    <Text style={styles.alertLogTitle}>{al.title.toUpperCase()}</Text>
+                    <Text style={styles.alertLogTime}>
+                      {new Date(al.timestamp).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </Text>
+                  </View>
+                  <Text style={styles.alertLogBody}>{al.body}</Text>
+                </TouchableOpacity>
+              ))
+            )
+          )}
+        </View>
+
+        {/* Bouton Déconnexion */}
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Text style={styles.logoutText}>DÉCONNEXION DU TERMINAL</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -228,17 +275,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  content: {
+  scrollContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 50,
+    paddingTop: 15,
     paddingBottom: 40,
   },
   profileSection: {
     alignItems: 'center',
-    marginBottom: 32,
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 20,
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    paddingBottom: 24,
+    zIndex: 10,
   },
   avatar: {
     width: 80,
