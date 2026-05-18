@@ -37,6 +37,9 @@ TaskManager.defineTask(config.MESH_MAIN_TASK, async ({ data, error }) => {
     return;
   }
 
+  // Tenter de synchroniser la file d'attente hors-ligne
+  apiService.syncOfflineQueue().catch(() => {});
+
   if (!data) return;
 
   const { locations } = data as any;

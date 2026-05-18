@@ -1,6 +1,17 @@
 import axios from 'axios';
+import * as SecureStore from 'expo-secure-store';
 import { config } from '../constants/config';
 import { authService } from './auth';
+
+const OFFLINE_QUEUE_KEY = 'meshfind_offline_detections_queue';
+
+export interface OfflineDetection {
+  bleId: string;
+  lat: number;
+  lng: number;
+  accuracy: number;
+  timestamp: number;
+}
 
 export const api = axios.create({
   baseURL: config.API_URL,
@@ -90,8 +101,48 @@ export const apiService = {
     }
   },
 
+  // Synchroniser la file d'attente hors-ligne si la connexion est revenue
+  async syncOfflineQueue(): Promise<void> {
+    try {
+      const rawQueue = await SecureStore.getItemAsync(OFFLINE_QUEUE_KEY);
+      if (!rawQueue) return;
+
+      const queue: OfflineDetection[] = JSON.parse(rawQueue);
+      if (queue.length === 0) return;
+
+      console.log(`📡 [Sync Queue] Détection de ${queue.length} rapports en attente de synchronisation...`);
+
+      const remainingQueue: OfflineDetection[] = [];
+
+      for (const item of queue) {
+        try {
+          // Tenter d'envoyer directement via l'API brute
+          await api.post('/detections', item);
+          console.log(`✅ [Sync Queue] Rapport synchronisé avec succès pour l'ID: ${item.bleId}`);
+        } catch (err: any) {
+          // Si cela échoue encore à cause du réseau, on le garde dans la file
+          if (!err.response || err.message === 'Network Error') {
+            remainingQueue.push(item);
+          } else {
+            // Si c'est une autre erreur (ex: mauvaise donnée, id inexistant), on le supprime pour ne pas bloquer la file
+            console.warn(`⚠️ [Sync Queue] Suppression d'un rapport invalide de la file d'attente:`, err.message);
+          }
+        }
+      }
+
+      if (remainingQueue.length > 0) {
+        await SecureStore.setItemAsync(OFFLINE_QUEUE_KEY, JSON.stringify(remainingQueue));
+      } else {
+        await SecureStore.deleteItemAsync(OFFLINE_QUEUE_KEY);
+        console.log('🎉 [Sync Queue] Tous les rapports hors-ligne ont été synchronisés avec succès !');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la synchronisation de la file hors-ligne:', error);
+    }
+  },
+
   // --- DÉTECTION (RÉSEAU MESH) ---
-  // Envoyer la position d'un téléphone perdu détecté anonymement
+  // Envoyer la position d'un téléphone perdu détecté anonymement (avec Queue Hors-ligne)
   async reportDetection(payload: {
     bleId: string;
     lat: number;
@@ -99,8 +150,38 @@ export const apiService = {
     accuracy: number;
     timestamp: number;
   }): Promise<any> {
-    const response = await api.post('/detections', payload);
-    return response.data;
+    try {
+      // 1. Tenter d'envoyer la détection immédiatement
+      const response = await api.post('/detections', payload);
+      
+      // 2. Si l'envoi réussit, tenter de synchroniser la file d'attente en arrière-plan
+      this.syncOfflineQueue().catch(() => {});
+
+      return response.data;
+    } catch (error: any) {
+      // 3. En cas d'erreur de réseau (hors-ligne), empiler dans la file d'attente
+      if (!error.response || error.message === 'Network Error') {
+        console.log(`📶 [Offline Queue] Téléphone hors-ligne. Mise en file d'attente de la détection pour "${payload.bleId}"...`);
+        try {
+          const rawQueue = await SecureStore.getItemAsync(OFFLINE_QUEUE_KEY);
+          const queue: OfflineDetection[] = rawQueue ? JSON.parse(rawQueue) : [];
+          
+          // Vérifier si cette détection n'est pas déjà présente dans la queue pour éviter les doublons
+          const isDuplicate = queue.some(
+            q => q.bleId === payload.bleId && Math.abs(q.timestamp - payload.timestamp) < 10000
+          );
+          
+          if (!isDuplicate) {
+            queue.push(payload);
+            await SecureStore.setItemAsync(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+            console.log(`📦 [Offline Queue] Détection sauvegardée localement (${queue.length} en attente).`);
+          }
+        } catch (storeErr) {
+          console.error("Échec d'enregistrement local de la détection hors-ligne:", storeErr);
+        }
+      }
+      throw error;
+    }
   },
 
   // Récupérer l'historique des positions pour mon appareil perdu

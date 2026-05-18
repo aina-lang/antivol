@@ -223,6 +223,9 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Démarrer la boucle autonome du Helper toutes les 12 secondes
     intervalId = setInterval(async () => {
       try {
+        // Tenter de synchroniser la file d'attente hors-ligne si la connexion est revenue
+        apiService.syncOfflineQueue().catch(() => {});
+
         // 1. Récupérer les IDs perdus actifs sur le réseau
         const lostIds = await apiService.getLostBLEIds();
         if (lostIds.length === 0) return;
