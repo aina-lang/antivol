@@ -52,10 +52,15 @@ export const apiService = {
     return response.data;
   },
 
-  // --- APPAREILS ---
-  // Déclarer un appareil perdu
-  async declareLost(deviceId: string, model: string, description?: string): Promise<any> {
-    const response = await api.post('/devices/lost', { deviceId, model, description });
+  // Enregistrer cet appareil
+  async registerDevice(deviceId: string, model: string): Promise<any> {
+    const response = await api.post('/devices/register', { deviceId, model });
+    return response.data;
+  },
+
+  // Déclarer l'appareil du compte perdu
+  async declareLost(description?: string): Promise<any> {
+    const response = await api.post('/devices/lost', { description });
     return response.data;
   },
 
