@@ -19,12 +19,12 @@ import { colors } from '../src/constants/colors';
 SplashScreen.preventAutoHideAsync();
 
 function NavigationGuard() {
-  const { user, isLoading, hasSeenOnboarding } = useMesh();
+  const { user, isSessionLoading, hasSeenOnboarding } = useMesh();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isSessionLoading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
 
@@ -40,9 +40,9 @@ function NavigationGuard() {
       // Rediriger vers le dashboard si déjà connecté
       router.replace('/(tabs)');
     }
-  }, [user, isLoading, hasSeenOnboarding, segments, router]);
+  }, [user, isSessionLoading, hasSeenOnboarding, segments, router]);
 
-  if (isLoading) {
+  if (isSessionLoading) {
     return (
       <View
         style={{

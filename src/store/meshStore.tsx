@@ -32,6 +32,7 @@ interface MeshContextType {
   hasSeenOnboarding: boolean;
   completeOnboarding: () => Promise<void>;
   isLoading: boolean;
+  isSessionLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<any>;
   verifyEmail: (email: string, code: string) => Promise<any>;
@@ -56,7 +57,8 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [alerts, setAlerts] = useState<MeshAlert[]>([]);
   const [currentLocation, setCurrentLocation] = useState<LocationCoords | null>(null);
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSessionLoading, setIsSessionLoading] = useState<boolean>(true);
 
   // Charger la session utilisateur au démarrage
   useEffect(() => {
@@ -75,7 +77,7 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (error) {
         console.error('Erreur au chargement de la session', error);
       } finally {
-        setIsLoading(false);
+        setIsSessionLoading(false);
       }
     }
     loadSession();
@@ -226,6 +228,7 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
         hasSeenOnboarding,
         completeOnboarding,
         isLoading,
+        isSessionLoading,
         login,
         register,
         verifyEmail,
