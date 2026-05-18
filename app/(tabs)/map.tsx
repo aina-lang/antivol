@@ -8,11 +8,25 @@ import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function FollowMap() {
-  const { currentLocation, devices, focusCoords, setFocusCoords } = useMesh();
+  const { currentLocation, devices, focusCoords, setFocusCoords, isServiceActive } = useMesh();
   const [markers, setMarkers] = useState<MapMarker[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [selectedDeviceName, setSelectedDeviceName] = useState<string | null>(null);
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number; accuracy?: number } | null>(null);
+  const [activeNodesCount, setActiveNodesCount] = useState<number>(0);
+
+  // Charger le nombre de nœuds protégés réels à Madagascar
+  useEffect(() => {
+    async function loadActiveNodes() {
+      try {
+        const stats = await apiService.getProtectedStats();
+        setActiveNodesCount(stats.count);
+      } catch (err) {
+        setActiveNodesCount(0);
+      }
+    }
+    loadActiveNodes();
+  }, []);
 
   // Charger l'historique des détections pour les appareils déclarés perdus
   useEffect(() => {
@@ -137,7 +151,7 @@ export default function FollowMap() {
         <ScrollView style={styles.statsScroll} contentContainerStyle={styles.statsContent}>
           <View style={styles.statRow}>
             <Text style={styles.statLabel}>Noeuds actifs à Madagascar</Text>
-            <Text style={styles.statValue}>1,248</Text>
+            <Text style={styles.statValue}>{activeNodesCount}</Text>
           </View>
           <View style={styles.statRow}>
             <Text style={styles.statLabel}>Marqueurs de détections affichés</Text>
@@ -145,7 +159,9 @@ export default function FollowMap() {
           </View>
           <View style={styles.statRow}>
             <Text style={styles.statLabel}>Statut du récepteur BLE</Text>
-            <Text style={[styles.statValue, { color: colors.success }]}>OPÉRATIONNEL</Text>
+            <Text style={[styles.statValue, { color: isServiceActive ? colors.success : colors.textSecondary }]}>
+              {isServiceActive ? 'ACTIF' : 'INACTIF'}
+            </Text>
           </View>
           {selectedDeviceName && (
             <View style={styles.alertNotice}>
