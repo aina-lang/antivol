@@ -8,10 +8,11 @@ import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function FollowMap() {
-  const { currentLocation, devices } = useMesh();
+  const { currentLocation, devices, focusCoords, setFocusCoords } = useMesh();
   const [markers, setMarkers] = useState<MapMarker[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [selectedDeviceName, setSelectedDeviceName] = useState<string | null>(null);
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number; accuracy?: number } | null>(null);
 
   // Charger l'historique des détections pour les appareils déclarés perdus
   useEffect(() => {
@@ -27,7 +28,7 @@ export default function FollowMap() {
               id: 'my-location',
               position: { lat: currentLocation.latitude, lng: currentLocation.longitude },
               icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#00FF66" width="36" height="36"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`,
-              size: [36, 36],
+              size: [36, 36] as [number, number],
               title: 'Votre Position',
             },
           ]);
@@ -38,14 +39,14 @@ export default function FollowMap() {
       setSelectedDeviceName(lostDevice.model);
       setLoadingHistory(true);
       try {
-        const history = await apiService.getDeviceHistory(lostDevice.id);
+        const history = await apiService.getDeviceHistory(lostDevice.deviceId);
 
         const historyMarkers: MapMarker[] = history.map((det: any, index: number) => ({
           id: `det-${index}`,
-          position: { lat: det.lat, lng: det.lng },
+          position: { lat: parseFloat(det.latitude), lng: parseFloat(det.longitude) },
           icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#FF3B30" width="36" height="36"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>`,
-          size: [36, 36],
-          title: `Détecté le ${new Date(det.timestamp).toLocaleDateString()} à ${new Date(det.timestamp).toLocaleTimeString()}`,
+          size: [36, 36] as [number, number],
+          title: `Détecté le ${new Date(parseInt(det.timestamp)).toLocaleDateString()} à ${new Date(parseInt(det.timestamp)).toLocaleTimeString()}`,
         }));
 
         // Ajouter la position de l'opérateur courant en vert/bleu
@@ -54,12 +55,21 @@ export default function FollowMap() {
             id: 'my-location',
             position: { lat: currentLocation.latitude, lng: currentLocation.longitude },
             icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#00F0FF" width="36" height="36"><circle cx="12" cy="12" r="10" fill="#00F0FF" fill-opacity="0.15" stroke="#00F0FF" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="#00F0FF"/><path d="M12 2a10 10 0 0 1 10 10" fill="none" stroke="#00F0FF" stroke-width="2" stroke-linecap="round"/></svg>`,
-            size: [36, 36],
+            size: [36, 36] as [number, number],
             title: 'Votre Position (Détecteur actif)',
           });
         }
 
         setMarkers(historyMarkers);
+
+        // Centrer par défaut sur le signal le plus récent s'il n'y a pas de focusCoords
+        if (history.length > 0 && !focusCoords) {
+          setMapCenter({
+            lat: parseFloat(history[0].latitude),
+            lng: parseFloat(history[0].longitude),
+            accuracy: parseFloat(history[0].accuracy || 10),
+          });
+        }
       } catch (err) {
         console.error('Erreur au chargement de l’historique tactique:', err);
       } finally {
@@ -69,6 +79,19 @@ export default function FollowMap() {
 
     fetchLostDevicesDetections();
   }, [devices, currentLocation]);
+
+  // Écouter focusCoords pour recentrer la carte sur demande
+  useEffect(() => {
+    if (focusCoords) {
+      setMapCenter({
+        lat: focusCoords.lat,
+        lng: focusCoords.lng,
+        accuracy: 10,
+      });
+      // Libérer focusCoords après centrage
+      setFocusCoords(null);
+    }
+  }, [focusCoords, setFocusCoords]);
 
   return (
     <View style={styles.container}>
@@ -90,11 +113,11 @@ export default function FollowMap() {
 
       {/* Zone Cartographique */}
       <View style={styles.mapContainer}>
-        {currentLocation ? (
+        {currentLocation || mapCenter ? (
           <MapView
-            latitude={currentLocation.latitude}
-            longitude={currentLocation.longitude}
-            accuracy={currentLocation.accuracy}
+            latitude={mapCenter?.lat || currentLocation?.latitude || -18.8792}
+            longitude={mapCenter?.lng || currentLocation?.longitude || 47.5079}
+            accuracy={mapCenter?.accuracy || currentLocation?.accuracy || 20}
             markers={markers}
             zoom={selectedDeviceName ? 16 : 14}
             isLoading={loadingHistory}

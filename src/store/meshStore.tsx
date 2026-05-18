@@ -1,9 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import * as Device from 'expo-device';
+import * as Location from 'expo-location';
 import { authService } from '../services/auth';
 import { apiService } from '../services/api';
 import { notificationService } from '../services/notifications';
+import * as Notifications from 'expo-notifications';
 
 interface LocationCoords {
   latitude: number;
@@ -22,6 +24,8 @@ interface MeshAlert {
   title: string;
   body: string;
   timestamp: number;
+  lat?: number;
+  lng?: number;
 }
 
 interface MeshContextType {
@@ -33,6 +37,7 @@ interface MeshContextType {
   alerts: MeshAlert[];
   currentLocation: LocationCoords | null;
   hasSeenOnboarding: boolean;
+  lostDeviceDetections: any[];
   completeOnboarding: () => Promise<void>;
   isLoading: boolean;
   isSessionLoading: boolean;
@@ -44,10 +49,13 @@ interface MeshContextType {
   logout: () => Promise<void>;
   loadMyDevices: () => Promise<void>;
   declareDeviceLost: (description?: string) => Promise<void>;
+  declareDeviceSecured: () => Promise<void>;
   toggleService: (active: boolean) => Promise<void>;
   updateLocation: (coords: LocationCoords) => void;
   addAlert: (alert: Omit<MeshAlert, 'id' | 'timestamp'>) => void;
   setDetectedDevices: React.Dispatch<React.SetStateAction<DetectedBLEDevice[]>>;
+  focusCoords: { lat: number; lng: number } | null;
+  setFocusCoords: (coords: { lat: number; lng: number } | null) => void;
 }
 
 const MeshContext = createContext<MeshContextType | undefined>(undefined);
@@ -59,8 +67,10 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [detectedDevices, setDetectedDevices] = useState<DetectedBLEDevice[]>([]);
   const [isServiceActive, setIsServiceActive] = useState<boolean>(true);
   const [alerts, setAlerts] = useState<MeshAlert[]>([]);
+  const [focusCoords, setFocusCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [currentLocation, setCurrentLocation] = useState<LocationCoords | null>(null);
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean>(false);
+  const [lostDeviceDetections, setLostDeviceDetections] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSessionLoading, setIsSessionLoading] = useState<boolean>(true);
 
@@ -121,6 +131,158 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
       receivedSub.remove();
     };
   }, []);
+
+  const [prevHistoryCount, setPrevHistoryCount] = useState<number | null>(null);
+
+  // Surveiller en temps réel l'apparition de nouvelles détections pour notre appareil perdu
+  useEffect(() => {
+    const lostDevice = devices.find((d) => d.isLost === true);
+    if (!lostDevice) {
+      setPrevHistoryCount(null);
+      setLostDeviceDetections([]);
+      return;
+    }
+
+    let isMounted = true;
+    let intervalId: NodeJS.Timeout;
+
+    // Charger le compte initial pour éviter de notifier des anciennes détections historiques
+    const initHistory = async () => {
+      try {
+        const history = await apiService.getDeviceHistory(lostDevice.deviceId);
+        if (isMounted) {
+          setPrevHistoryCount(history.length);
+          setLostDeviceDetections(history);
+        }
+      } catch (err) {
+        console.error("Erreur d'initialisation de l'écouteur de détection:", err);
+      }
+    };
+
+    initHistory();
+
+    // Démarrer le polling toutes les 7 secondes
+    intervalId = setInterval(async () => {
+      try {
+        const history = await apiService.getDeviceHistory(lostDevice.deviceId);
+        if (!isMounted) return;
+
+        setLostDeviceDetections(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(history)) {
+            return prev;
+          }
+          return history;
+        });
+
+        if (prevHistoryCount !== null && history.length > prevHistoryCount) {
+          // Une nouvelle détection a été enregistrée !
+          const newDetection = history[0]; // La plus récente est en premier
+          
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: '🚨 Appareil repéré !',
+              body: `Votre appareil "${lostDevice.model.toUpperCase()}" vient d'être localisé par le réseau communautaire MeshFind à Madagascar !`,
+              sound: true,
+              priority: Notifications.AndroidNotificationPriority.HIGH,
+            },
+            trigger: null,
+          });
+
+          addAlert({
+            title: '🚨 Appareil repéré !',
+            body: `Localisé à ${new Date(parseInt(newDetection.timestamp)).toLocaleTimeString()}`,
+            lat: parseFloat(newDetection.latitude),
+            lng: parseFloat(newDetection.longitude),
+          });
+        }
+        
+        // Mettre à jour le compte
+        setPrevHistoryCount(history.length);
+      } catch (err) {
+        console.error("Erreur de suivi temps-réel de détection:", err);
+      }
+    }, 7000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
+  }, [devices, prevHistoryCount]);
+
+  // Écouteur et scanner autonome pour le Helper (Téléphone B) en premier plan (Foreground Loop)
+  useEffect(() => {
+    if (!user) return;
+
+    // Si cet appareil lui-même est déclaré perdu, il ne doit pas scanner pour d'autres
+    const lostDevice = devices.find((d) => d.isLost === true);
+    if (lostDevice) return;
+
+    let isMounted = true;
+    let intervalId: NodeJS.Timeout;
+
+    // Démarrer la boucle autonome du Helper toutes les 12 secondes
+    intervalId = setInterval(async () => {
+      try {
+        // 1. Récupérer les IDs perdus actifs sur le réseau
+        const lostIds = await apiService.getLostBLEIds();
+        if (lostIds.length === 0) return;
+
+        // 2. Récupérer notre propre ID local pour l'exclure (anti-auto-détection)
+        const localId = await SecureStore.getItemAsync('meshfind_local_device_id');
+        const filtered = lostIds.filter(id => id.toLowerCase() !== localId?.toLowerCase());
+
+        if (filtered.length > 0 && isMounted) {
+          const targetId = filtered[0];
+          console.log(`🟢 [Téléphone B - HELPER] Auto-Scan : Détection automatique autonome de l'ID perdu "${targetId}"`);
+
+          // 3. Obtenir la position GPS (instantanée, fallback si besoin)
+          const hasPermission = await Location.getForegroundPermissionsAsync();
+          if (hasPermission.status !== 'granted') return;
+
+          const location = await Location.getLastKnownPositionAsync({});
+          const lat = location?.coords.latitude || -18.8792;
+          const lng = location?.coords.longitude || 47.5079;
+          const accuracy = location?.coords.accuracy || 10;
+
+          // 4. Téléverser automatiquement la détection
+          await apiService.reportDetection({
+            bleId: targetId,
+            lat,
+            lng,
+            accuracy,
+            timestamp: Date.now(),
+          });
+
+          console.log(`🟢 [Téléphone B - HELPER] ✅ Upload autonome de détection réussi pour "${targetId}" !`);
+
+          // 5. Alerter l'Helper par une notification locale
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: '🚨 Radar communautaire : Succès !',
+              body: `Merci ! Votre radar vient d'aider à localiser l'appareil perdu "${targetId}" à Madagascar.`,
+              sound: true,
+              priority: Notifications.AndroidNotificationPriority.HIGH,
+            },
+            trigger: null,
+          });
+
+          addAlert({
+            title: '🚨 Radar communautaire : Succès !',
+            body: `Appareil perdu "${targetId}" localisé et signalé.`,
+            lat,
+            lng,
+          });
+        }
+      } catch (err) {
+        console.error("Erreur dans la boucle autonome du Helper:", err);
+      }
+    }, 12000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
+  }, [user, devices]);
 
   // --- ACTIONS ---
 
@@ -208,14 +370,14 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setDevices([]);
   };
 
-  const loadMyDevices = async () => {
+  const loadMyDevices = useCallback(async () => {
     try {
       const myDevices = await apiService.getMyDevices();
       setDevices(myDevices);
     } catch (error) {
       console.error('Erreur de chargement des appareils', error);
     }
-  };
+  }, []);
 
   const declareDeviceLost = async (description?: string) => {
     try {
@@ -230,6 +392,19 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const declareDeviceSecured = async () => {
+    try {
+      await apiService.declareSecured();
+      await loadMyDevices();
+      addAlert({
+        title: 'Appareil sécurisé',
+        body: 'Recherche active annulée. Votre appareil est à nouveau en sécurité.',
+      });
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Erreur lors de la sécurisation');
+    }
+  };
+
   const toggleService = async (active: boolean) => {
     setIsServiceActive(active);
     addAlert({
@@ -240,9 +415,9 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  const updateLocation = (coords: LocationCoords) => {
+  const updateLocation = React.useCallback((coords: LocationCoords) => {
     setCurrentLocation(coords);
-  };
+  }, []);
 
   const addAlert = (alert: Omit<MeshAlert, 'id' | 'timestamp'>) => {
     const newAlert: MeshAlert = {
@@ -275,10 +450,14 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         loadMyDevices,
         declareDeviceLost,
+        declareDeviceSecured,
         toggleService,
         updateLocation,
         addAlert,
         setDetectedDevices,
+        lostDeviceDetections,
+        focusCoords,
+        setFocusCoords,
       }}>
       {children}
     </MeshContext.Provider>

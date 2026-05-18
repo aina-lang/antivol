@@ -5,7 +5,6 @@ import { Platform } from 'react-native';
 // Configurer le gestionnaire de notifications par défaut
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
     shouldShowBanner: true,

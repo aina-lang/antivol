@@ -64,6 +64,12 @@ export const apiService = {
     return response.data;
   },
 
+  // Annuler l'alerte de perte (sécuriser l'appareil)
+  async declareSecured(): Promise<any> {
+    const response = await api.post('/devices/secure');
+    return response.data;
+  },
+
   // Récupérer la liste des miens
   async getMyDevices(): Promise<any> {
     const response = await api.get('/devices/mine');

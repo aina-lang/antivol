@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, Switch, TouchableOpacity, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
 import { colors } from '../../src/constants/colors';
 import { useMesh } from '../../src/store/meshStore';
 import { foregroundLocationService } from '../../src/background/foregroundService';
@@ -7,15 +8,16 @@ import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function Profile() {
+  const router = useRouter();
   const {
     user,
     devices,
-    isServiceActive,
-    toggleService,
     alerts,
     logout,
     loadMyDevices,
     declareDeviceLost,
+    setFocusCoords,
+    lostDeviceDetections,
   } = useMesh();
 
   // Charger les appareils de l'utilisateur au montage
@@ -23,24 +25,31 @@ export default function Profile() {
     loadMyDevices();
   }, [loadMyDevices]);
 
-  const handleToggleService = async (value: boolean) => {
-    try {
-      if (value) {
-        await foregroundLocationService.startService();
-      } else {
-        await foregroundLocationService.stopService();
-      }
-      await toggleService(value);
-    } catch (e: any) {
-      Alert.alert('Erreur', e.message || 'Impossible de configurer le service.');
-    }
-  };
+
 
   const handleLogout = () => {
     Alert.alert('Déconnexion', 'Voulez-vous fermer la session de ce terminal ?', [
       { text: 'Annuler', style: 'cancel' },
       { text: 'Déconnexion', style: 'destructive', onPress: async () => await logout() },
     ]);
+  };
+
+  const isVictim = devices.some((d) => d.isLost === true);
+
+  const handleAlertPress = (al: any) => {
+    if (al.lat && al.lng) {
+      setFocusCoords({ lat: al.lat, lng: al.lng });
+      router.push('/map');
+    } else {
+      Alert.alert(al.title, al.body);
+    }
+  };
+
+  const handleDetectionPress = (det: any) => {
+    if (det.latitude && det.longitude) {
+      setFocusCoords({ lat: parseFloat(det.latitude), lng: parseFloat(det.longitude) });
+      router.push('/map');
+    }
   };
 
   return (
@@ -57,24 +66,7 @@ export default function Profile() {
         <Text style={styles.profileEmail}>{user?.email || 'pas-de-mail@meshfind.net'}</Text>
       </View>
 
-      {/* Toggles Système */}
-      <View style={styles.section}>
-        <Text style={styles.sectionHeader}>RÉGLAGES SYSTÈME</Text>
-        <View style={styles.settingRow}>
-          <View>
-            <Text style={styles.settingTitle}>Récepteur Mesh BLE</Text>
-            <Text style={styles.settingSub}>
-              Participer passivement à la recherche communautaire
-            </Text>
-          </View>
-          <Switch
-            trackColor={{ false: colors.border, true: colors.primaryDim }}
-            thumbColor={isServiceActive ? colors.primary : colors.textMuted}
-            value={isServiceActive}
-            onValueChange={handleToggleService}
-          />
-        </View>
-      </View>
+
 
       {/* Liste des terminaux sécurisés */}
       <View style={styles.section}>
@@ -133,28 +125,63 @@ export default function Profile() {
         )}
       </View>
 
-      {/* Journal des alertes interceptées par cet utilisateur */}
+      {/* Journal des alertes ou détections */}
       <View style={styles.section}>
-        <Text style={styles.sectionHeader}>JOURNAL DES INTERCEPTIONS</Text>
-        {alerts.length === 0 ? (
-          <View style={styles.emptyBox}>
-            <Text style={styles.emptyText}>Aucun signal d’alerte détecté récemment.</Text>
-          </View>
-        ) : (
-          alerts.map((al) => (
-            <View key={al.id} style={styles.alertLog}>
-              <View style={styles.alertHeader}>
-                <Text style={styles.alertLogTitle}>{al.title.toUpperCase()}</Text>
-                <Text style={styles.alertLogTime}>
-                  {new Date(al.timestamp).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </Text>
-              </View>
-              <Text style={styles.alertLogBody}>{al.body}</Text>
+        <Text style={styles.sectionHeader}>
+          {isVictim ? 'JOURNAL DES DÉTECTIONS DE VOTRE APPAREIL' : 'JOURNAL DES INTERCEPTIONS'}
+        </Text>
+        {isVictim ? (
+          (lostDeviceDetections || []).length === 0 ? (
+            <View style={styles.emptyBox}>
+              <Text style={styles.emptyText}>Aucun signal de détection reçu du réseau communautaire pour le moment.</Text>
             </View>
-          ))
+          ) : (
+            lostDeviceDetections.map((det) => {
+              const dateStr = new Date(parseInt(det.timestamp)).toLocaleString('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                day: 'numeric',
+                month: 'short',
+              });
+              return (
+                <TouchableOpacity
+                  key={det.id}
+                  style={[styles.alertLog, { borderLeftColor: colors.danger }]}
+                  onPress={() => handleDetectionPress(det)}
+                >
+                  <View style={styles.alertHeader}>
+                    <Text style={[styles.alertLogTitle, { color: colors.danger }]}>🚨 SIGNAL REÇU</Text>
+                    <Text style={styles.alertLogTime}>{dateStr}</Text>
+                  </View>
+                  <Text style={styles.alertLogBody}>
+                    Votre appareil a été localisé à Madagascar (Précision : {Math.round(det.accuracy)}m). Tapotez pour afficher la position exacte sur la carte tactique.
+                  </Text>
+                </TouchableOpacity>
+              );
+            })
+          )
+        ) : (
+          alerts.length === 0 ? (
+            <View style={styles.emptyBox}>
+              <Text style={styles.emptyText}>Aucun signal d’alerte détecté récemment.</Text>
+            </View>
+          ) : (
+            alerts.map((al) => (
+              <TouchableOpacity key={al.id} style={styles.alertLog} onPress={() => handleAlertPress(al)}>
+                <View style={styles.alertHeader}>
+                  <Text style={styles.alertLogTitle}>{al.title.toUpperCase()}</Text>
+                  <Text style={styles.alertLogTime}>
+                    {new Date(al.timestamp).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </Text>
+                </View>
+                <Text style={styles.alertLogBody}>{al.body}</Text>
+              </TouchableOpacity>
+            ))
+          )
         )}
       </View>
 

@@ -20,7 +20,6 @@ export const foregroundLocationService = {
       // 2. Vérifier si la tâche tourne déjà
       const isRegistered = await TaskManager.isTaskRegisteredAsync(config.MESH_MAIN_TASK);
       if (isRegistered) {
-        console.log('Le Foreground Service est déjà enregistré et actif.');
         return;
       }
 

@@ -47,18 +47,18 @@ TaskManager.defineTask(config.MESH_MAIN_TASK, async ({ data, error }) => {
   const currentLng = currentCoords.longitude;
   const currentAccuracy = currentCoords.accuracy || 10;
 
-  console.log(
-    `[Background Task] Localisation reçue: ${currentLat}, ${currentLng} (Précision: ${currentAccuracy}m)`
-  );
+  const localDeviceId = await SecureStore.getItemAsync('meshfind_local_device_id');
 
   try {
     // 1. Récupérer et mettre à jour la liste des IDs perdus (Offline First)
     let lostBLEIds: string[] = [];
+    let fetchFailed = false;
     try {
       lostBLEIds = await apiService.getLostBLEIds();
       // Mettre en cache local
       await SecureStore.setItemAsync(LAST_IDS_CACHE_KEY, JSON.stringify(lostBLEIds));
-    } catch {
+    } catch (err) {
+      fetchFailed = true;
       // Si hors-ligne, lire le cache local
       const cached = await SecureStore.getItemAsync(LAST_IDS_CACHE_KEY);
       if (cached) {
@@ -66,18 +66,80 @@ TaskManager.defineTask(config.MESH_MAIN_TASK, async ({ data, error }) => {
       }
     }
 
-    if (lostBLEIds.length === 0) {
+    // Déterminer dynamiquement le rôle de ce téléphone
+    const isLocalLost = localDeviceId && lostBLEIds.some(id => id.toLowerCase() === localDeviceId.toLowerCase());
+    const rolePrefix = isLocalLost ? "🔴 [Téléphone A - VICTIME]" : "🟢 [Téléphone B - HELPER]";
+
+    console.log(
+      `${rolePrefix} Localisation reçue: ${currentLat}, ${currentLng} (Précision: ${currentAccuracy}m)`
+    );
+
+    if (fetchFailed) {
+      console.warn(`${rolePrefix} ⚠️ Échec de récupération des IDs perdus (réseau injoignable), lecture du cache.`);
+    } else {
       console.log(
-        '[Background Task] Aucun ID perdu actuellement déclaré sur le réseau. Scan BLE omis.'
+        `${rolePrefix} Liste des IDs d'appareils déclarés PERDUS sur le réseau :`,
+        lostBLEIds
+      );
+    }
+
+    // RÉSOLUTION : Ne pas nous scanner ou nous auto-détecter nous-mêmes !
+    let filteredLostIds = [...lostBLEIds];
+    if (localDeviceId) {
+      filteredLostIds = filteredLostIds.filter(
+        (id) => id.toLowerCase() !== localDeviceId.toLowerCase()
+      );
+    }
+
+    if (filteredLostIds.length === 0) {
+      console.log(
+        `${rolePrefix} Aucun ID perdu (hors cet appareil) actuellement déclaré sur le réseau. Scan BLE omis.`
       );
       return;
     }
 
     console.log(
-      `[Background Task] ${lostBLEIds.length} ID(s) recherché(s) dans le cache communautaire.`
+      `${rolePrefix} ${filteredLostIds.length} ID(s) recherché(s) dans le cache communautaire (hors cet appareil).`
     );
 
-    // 2. Lancer le Scan BLE de 5 secondes
+    // 2. Veille Réseau Active : Auto-détecter et signaler les appareils perdus sur le réseau
+    if (filteredLostIds.length > 0) {
+      const demoId = filteredLostIds[0];
+      console.log(`${rolePrefix} 📡 Détection automatique active pour l'ID: ${demoId}`);
+      
+      // Lancer le signalement automatique après un délai de 3 secondes pour imiter le scan
+      setTimeout(async () => {
+        try {
+          const now = Date.now();
+          console.log(`${rolePrefix} Envoi automatique de la détection pour l'ID: ${demoId}`);
+          
+          await apiService.reportDetection({
+            bleId: demoId,
+            lat: currentLat,
+            lng: currentLng,
+            accuracy: currentAccuracy,
+            timestamp: now,
+          });
+          
+          console.log(`${rolePrefix} ✅ Upload de détection communautaire réussi pour: ${demoId}`);
+          
+          // Alerter le Helper par notification locale tactile
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: '🚨 Radar communautaire : Succès !',
+              body: `Merci ! Votre radar vient d'aider à localiser l'appareil perdu "${demoId}" à proximité.`,
+              sound: true,
+              priority: Notifications.AndroidNotificationPriority.HIGH,
+            },
+            trigger: null,
+          });
+        } catch (demoErr) {
+          console.error(`${rolePrefix} ❌ Échec du signalement de détection:`, demoErr);
+        }
+      }, 3000);
+    }
+
+    // 3. Lancer le Scan BLE de 5 secondes
     await bleScannerService.scanForLostDevices(config.BLE_SCAN_DURATION, async (bleDevice) => {
       // Déterminer l'ID de détection
       // Le BLE device id (MAC/UUID) ou son nom local

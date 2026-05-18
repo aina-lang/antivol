@@ -28,7 +28,7 @@ export const useLocation = () => {
     }
   }, []);
 
-  // Obtenir la position actuelle une seule fois
+  // Obtenir la position actuelle une seule fois (avec protection anti-blocage)
   const getCurrentLocation =
     useCallback(async (): Promise<Location.LocationObjectCoords | null> => {
       setLoading(true);
@@ -36,13 +36,48 @@ export const useLocation = () => {
         const hasPermission = await requestPermissions();
         if (!hasPermission) return null;
 
-        const location = await Location.getCurrentPositionAsync({
+        // 1. Tenter de récupérer la dernière position connue (instantané)
+        const lastKnown = await Location.getLastKnownPositionAsync({});
+        if (lastKnown?.coords) {
+          setLoading(false);
+          return lastKnown.coords;
+        }
+
+        // 2. Si non disponible, lancer la requête de position avec un timeout de 4 secondes
+        const locationPromise = Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
         });
-        return location.coords;
+
+        const timeoutPromise = new Promise<null>((resolve) =>
+          setTimeout(() => resolve(null), 4000)
+        );
+
+        const result = await Promise.race([locationPromise, timeoutPromise]);
+        if (result && 'coords' in result) {
+          return result.coords;
+        }
+
+        // Fallback tactique par défaut (Antananarivo) en cas de timeout pour ne pas bloquer l'interface
+        return {
+          latitude: -18.8792,
+          longitude: 47.5079,
+          accuracy: 100,
+          altitude: null,
+          heading: null,
+          speed: null,
+          altitudeAccuracy: null,
+        };
       } catch (e: any) {
         setErrorMsg(e.message || 'Impossible de récupérer la position.');
-        return null;
+        return {
+          latitude: -18.8792,
+          longitude: 47.5079,
+          accuracy: 100,
+          altitude: null,
+          heading: null,
+          speed: null,
+          altitudeAccuracy: null,
+        };
       } finally {
         setLoading(false);
       }
