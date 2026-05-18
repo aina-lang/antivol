@@ -12,7 +12,7 @@ interface ScreenContentProps {
 export const ScreenContent: React.FC<ScreenContentProps> = ({ title, path, children }) => {
   return (
     <View className={styles.container}>
-      <Text className={styles.title}>{title}</Text>
+      <Text className={styles.title}>{title} ca marche</Text>
       <View className={styles.separator} />
       <EditScreenInfo path={path} />
       {children}
