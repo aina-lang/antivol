@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '../../src/constants/colors';
@@ -48,6 +48,16 @@ export default function Dashboard() {
     if (isServiceActive) {
       foregroundLocationService.startService().catch((err) => {
         console.warn('Erreur auto-start Foreground Service:', err);
+        if (err.message?.includes('arrière-plan')) {
+          Alert.alert(
+            'Protection active requise',
+            'Pour sécuriser votre appareil en arrière-plan, veuillez accorder la permission de localisation "Toujours" dans les paramètres.',
+            [
+              { text: 'Annuler', style: 'cancel' },
+              { text: 'Paramètres', onPress: () => Linking.openSettings() }
+            ]
+          );
+        }
       });
     }
   }, [getCurrentLocation, isServiceActive, updateLocation]);
@@ -63,7 +73,18 @@ export default function Dashboard() {
       }
       await toggleService(nextState);
     } catch (e: any) {
-      Alert.alert('Erreur Service', e.message || 'Impossible de modifier l’état du service.');
+      if (e.message?.includes('arrière-plan')) {
+        Alert.alert(
+          'Permission requise',
+          'Veuillez activer la localisation "Toujours autoriser" dans les paramètres du téléphone pour démarrer le service.',
+          [
+            { text: 'Annuler', style: 'cancel' },
+            { text: 'Paramètres', onPress: () => Linking.openSettings() }
+          ]
+        );
+      } else {
+        Alert.alert('Erreur Service', e.message || 'Impossible de modifier l’état du service.');
+      }
     }
   };
 
