@@ -114,7 +114,7 @@ export default function Profile() {
                         {
                           text: 'Déclarer Perdu',
                           style: 'destructive',
-                          onPress: () => declareDeviceLost(dev.id, dev.model),
+                          onPress: () => declareDeviceLost(),
                         },
                       ]
                     );

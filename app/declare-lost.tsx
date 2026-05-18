@@ -18,24 +18,18 @@ import { useMesh } from '../src/store/meshStore';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function DeclareLost() {
-  const [deviceId, setDeviceId] = useState('');
-  const [model, setModel] = useState('');
   const [description, setDescription] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const { declareDeviceLost } = useMesh();
+  const { declareDeviceLost, localDevice } = useMesh();
   const router = useRouter();
 
   const handleDeclare = async () => {
-    if (!deviceId || !model) {
-      setErrorMsg('L’adresse matérielle (MAC/ID) et le modèle sont obligatoires.');
-      return;
-    }
     setErrorMsg(null);
     setSubmitting(true);
     try {
-      await declareDeviceLost(deviceId, model, description);
+      await declareDeviceLost(description);
       Alert.alert(
         'Alerte Réseau Lancée',
         'Votre appareil a été déclaré perdu. Toute la communauté MeshFind à Madagascar est en écoute active.',
@@ -77,33 +71,28 @@ export default function DeclareLost() {
             </View>
           )}
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>ADRESSE PHYSIQUE / MAC DU TÉLÉPHONE PERDU</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="XX:XX:XX:XX:XX:XX ou ID BLE Unique"
-              placeholderTextColor={colors.textMuted}
-              autoCapitalize="characters"
-              value={deviceId}
-              onChangeText={setDeviceId}
-            />
-            <Text style={styles.fieldHint}>
-              Cet identifiant unique (ex: Adresse MAC Bluetooth) sera recherché par le réseau mesh
-              communautaire.
-            </Text>
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>MODÈLE DE L’APPAREIL</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Samsung Galaxy S23, iPhone 14 Pro"
-              placeholderTextColor={colors.textMuted}
-              autoCapitalize="words"
-              value={model}
-              onChangeText={setModel}
-            />
-          </View>
+          {localDevice && (
+            <View style={styles.deviceCard}>
+              <View style={styles.deviceHeader}>
+                <MaterialCommunityIcons
+                  name="cellphone-wireless"
+                  size={24}
+                  color={colors.danger}
+                  style={{ marginRight: 12 }}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.deviceLabel}>APPAREIL ENREGISTRÉ À CE COMPTE</Text>
+                  <Text style={styles.deviceModel}>{localDevice.model.toUpperCase()}</Text>
+                  <Text style={styles.deviceId} numberOfLines={1}>
+                    ID: {localDevice.deviceId}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.fieldHint}>
+                Ce terminal est le seul et unique appareil lié à votre compte. Sa perte sera signalée sur l'ensemble du réseau MeshFind de Madagascar.
+              </Text>
+            </View>
+          )}
 
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>INFORMATIONS SUPPLÉMENTAIRES (FACULTATIF)</Text>
@@ -251,5 +240,37 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textPrimary,
     letterSpacing: 1,
+  },
+  deviceCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 24,
+  },
+  deviceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  deviceLabel: {
+    fontFamily: 'Orbitron_700Bold',
+    fontSize: 9,
+    color: colors.textSecondary,
+    letterSpacing: 1,
+  },
+  deviceModel: {
+    fontFamily: 'SpaceMono_400Regular',
+    fontSize: 14,
+    color: colors.textPrimary,
+    fontWeight: 'bold',
+    marginTop: 4,
+  },
+  deviceId: {
+    fontFamily: 'SpaceMono_400Regular',
+    fontSize: 10,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
 });
