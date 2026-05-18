@@ -25,7 +25,7 @@ export default function Dashboard() {
 
   const router = useRouter();
   const { getCurrentLocation } = useLocation();
-  const [protectedCount, setProtectedCount] = useState(42);
+  const [protectedCount, setProtectedCount] = useState(0);
   const [mapLoading, setMapLoading] = useState(false);
 
   // Convertir les détections communautaires en marqueurs Leaflet de couleur Rouge (mémorisés)
@@ -91,7 +91,7 @@ export default function Dashboard() {
       setMapLoading(true);
       try {
         // Charger le nombre de téléphones protégés à proximité
-        const stats = await apiService.getProtectedStats().catch(() => ({ count: 42 }));
+        const stats = await apiService.getProtectedStats().catch(() => ({ count: 0 }));
         setProtectedCount(stats.count);
 
         // Récupérer la position GPS actuelle

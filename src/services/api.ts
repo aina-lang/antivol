@@ -116,7 +116,7 @@ export const apiService = {
       return response.data;
     } catch {
       // Fallback local réaliste si le backend n'est pas connecté
-      return { count: 42 };
+      return { count: 0 };
     }
   },
 };
