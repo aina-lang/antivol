@@ -32,9 +32,10 @@ export const foregroundLocationService = {
         accuracy: Location.Accuracy.Balanced,
         // Options Android pour le Foreground Service persistent
         foregroundService: {
-          notificationTitle: 'MeshFind — Réseau Actif',
-          notificationBody: 'Vous sécurisez la communauté de Madagascar.',
+          notificationTitle: '🛡️ MeshFind — Protection Active',
+          notificationBody: 'Veille communautaire active à Madagascar.',
           notificationColor: '#00D4FF',
+          killServiceOnDestroy: false,
         },
         // Options iOS / Android
         timeInterval: config.BLE_SCAN_INTERVAL,
