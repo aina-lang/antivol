@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../src/constants/colors';
 import { useMesh } from '../src/store/meshStore';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -21,6 +22,7 @@ export default function DeclareLost() {
   const [description, setDescription] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const { declareDeviceLost, declareDeviceSecured, localDevice, devices } = useMesh();
   const router = useRouter();
@@ -61,7 +63,7 @@ export default function DeclareLost() {
       style={styles.container}>
       <StatusBar style="light" />
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 20), paddingBottom: Math.max(insets.bottom, 20) }]}>
         {/* Header tactique modal */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>

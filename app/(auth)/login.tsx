@@ -8,9 +8,11 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../src/constants/colors';
 import { useMesh } from '../../src/store/meshStore';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -38,81 +40,95 @@ export default function Login() {
     }
   };
 
+  const insets = useSafeAreaInsets();
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}>
       <StatusBar style="light" />
 
-      <View style={styles.header}>
-        <Text style={styles.brandTitle}>MESH//FIND</Text>
-        <Text style={styles.subTitle}>ENTREZ VOS IDENTIFIANTS TACTIQUES</Text>
-      </View>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: Math.max(insets.top, 30),
+            paddingBottom: Math.max(insets.bottom, 20),
+          }
+        ]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled">
 
-      <View style={styles.form}>
-        {errorMsg && (
-          <View style={styles.errorBox}>
-            <MaterialCommunityIcons
-              name="alert-circle-outline"
-              size={16}
-              color={colors.danger}
-              style={{ marginRight: 8 }}
-            />
-            <Text style={styles.errorText}>{errorMsg}</Text>
-          </View>
-        )}
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>EMAIL ADRESSE</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="operateur@meshfind.net"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
-            returnKeyType="next"
-            onSubmitEditing={() => passwordRef.current?.focus()}
-            blurOnSubmit={false}
-          />
+        <View style={styles.header}>
+          <Text style={styles.brandTitle}>MESH//FIND</Text>
+          <Text style={styles.subTitle}>ENTREZ VOS IDENTIFIANTS TACTIQUES</Text>
         </View>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>MOT DE PASSE</Text>
-          <TextInput
-            ref={passwordRef}
-            style={styles.input}
-            placeholder="••••••••••••"
-            placeholderTextColor={colors.textMuted}
-            secureTextEntry
-            autoCapitalize="none"
-            value={password}
-            onChangeText={setPassword}
-            returnKeyType="done"
-            onSubmitEditing={handleLogin}
-          />
-        </View>
-
-        <TouchableOpacity
-          style={[styles.loginButton, isLoading ? styles.buttonDisabled : null]}
-          onPress={handleLogin}
-          disabled={isLoading}>
-          {isLoading ? (
-            <ActivityIndicator color={colors.background} />
-          ) : (
-            <Text style={styles.loginButtonText}>ACCÉDER AU TERMINAL</Text>
+        <View style={styles.form}>
+          {errorMsg && (
+            <View style={styles.errorBox}>
+              <MaterialCommunityIcons
+                name="alert-circle-outline"
+                size={16}
+                color={colors.danger}
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.errorText}>{errorMsg}</Text>
+            </View>
           )}
-        </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.registerLink}
-          onPress={() => router.push('/(auth)/register')}>
-          <Text style={styles.registerLinkText}>
-            Pas encore de compte ? <Text style={{ color: colors.primary }}>CRÉER UN ACCÈS</Text>
-          </Text>
-        </TouchableOpacity>
-      </View>
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>EMAIL ADRESSE</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="operateur@meshfind.net"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+              returnKeyType="next"
+              onSubmitEditing={() => passwordRef.current?.focus()}
+              blurOnSubmit={false}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>MOT DE PASSE</Text>
+            <TextInput
+              ref={passwordRef}
+              style={styles.input}
+              placeholder="••••••••••••"
+              placeholderTextColor={colors.textMuted}
+              secureTextEntry
+              autoCapitalize="none"
+              value={password}
+              onChangeText={setPassword}
+              returnKeyType="done"
+              onSubmitEditing={handleLogin}
+            />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.loginButton, isLoading ? styles.buttonDisabled : null]}
+            onPress={handleLogin}
+            disabled={isLoading}>
+            {isLoading ? (
+              <ActivityIndicator color={colors.background} />
+            ) : (
+              <Text style={styles.loginButtonText}>ACCÉDER AU TERMINAL</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.registerLink}
+            onPress={() => router.push('/(auth)/register')}>
+            <Text style={styles.registerLinkText}>
+              Pas encore de compte ? <Text style={{ color: colors.primary }}>CRÉER UN ACCÈS</Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -121,6 +137,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 24,
   },

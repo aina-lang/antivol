@@ -8,9 +8,11 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../src/constants/colors';
 import { useMesh } from '../../src/store/meshStore';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -49,112 +51,126 @@ export default function Register() {
     }
   };
 
+  const insets = useSafeAreaInsets();
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}>
       <StatusBar style="light" />
 
-      <View style={styles.header}>
-        <Text style={styles.brandTitle}>MESH//FIND</Text>
-        <Text style={styles.subTitle}>CRÉER UN ACCÈS RENSEIGNEMENT</Text>
-      </View>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: Math.max(insets.top, 30),
+            paddingBottom: Math.max(insets.bottom, 20),
+          }
+        ]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled">
 
-      <View style={styles.form}>
-        {errorMsg && (
-          <View style={styles.errorBox}>
-            <MaterialCommunityIcons
-              name="alert-circle-outline"
-              size={16}
-              color={colors.danger}
-              style={{ marginRight: 8 }}
-            />
-            <Text style={styles.errorText}>{errorMsg}</Text>
-          </View>
-        )}
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>NOM D’OPÉRATEUR</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Jean Dupont"
-            placeholderTextColor={colors.textMuted}
-            autoCapitalize="words"
-            value={name}
-            onChangeText={setName}
-            returnKeyType="next"
-            onSubmitEditing={() => emailRef.current?.focus()}
-            blurOnSubmit={false}
-          />
+        <View style={styles.header}>
+          <Text style={styles.brandTitle}>MESH//FIND</Text>
+          <Text style={styles.subTitle}>CRÉER UN ACCÈS RENSEIGNEMENT</Text>
         </View>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>EMAIL ADRESSE</Text>
-          <TextInput
-            ref={emailRef}
-            style={styles.input}
-            placeholder="operateur@meshfind.net"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
-            returnKeyType="next"
-            onSubmitEditing={() => passwordRef.current?.focus()}
-            blurOnSubmit={false}
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>MOT DE PASSE (MINIMUM 6 CARACTÈRES)</Text>
-          <TextInput
-            ref={passwordRef}
-            style={styles.input}
-            placeholder="••••••••••••"
-            placeholderTextColor={colors.textMuted}
-            secureTextEntry
-            autoCapitalize="none"
-            value={password}
-            onChangeText={setPassword}
-            returnKeyType="next"
-            onSubmitEditing={() => confirmPasswordRef.current?.focus()}
-            blurOnSubmit={false}
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>CONFIRMER LE MOT DE PASSE</Text>
-          <TextInput
-            ref={confirmPasswordRef}
-            style={styles.input}
-            placeholder="••••••••••••"
-            placeholderTextColor={colors.textMuted}
-            secureTextEntry
-            autoCapitalize="none"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            returnKeyType="done"
-            onSubmitEditing={handleRegister}
-          />
-        </View>
-
-        <TouchableOpacity
-          style={[styles.registerButton, isLoading ? styles.buttonDisabled : null]}
-          onPress={handleRegister}
-          disabled={isLoading}>
-          {isLoading ? (
-            <ActivityIndicator color={colors.background} />
-          ) : (
-            <Text style={styles.registerButtonText}>GÉNÉRER L’ACCÈS RÉSEAU</Text>
+        <View style={styles.form}>
+          {errorMsg && (
+            <View style={styles.errorBox}>
+              <MaterialCommunityIcons
+                name="alert-circle-outline"
+                size={16}
+                color={colors.danger}
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.errorText}>{errorMsg}</Text>
+            </View>
           )}
-        </TouchableOpacity>
 
-        <TouchableOpacity style={styles.loginLink} onPress={() => router.push('/(auth)/login')}>
-          <Text style={styles.loginLinkText}>
-            Déjà inscrit ? <Text style={{ color: colors.primary }}>SE CONNECTER</Text>
-          </Text>
-        </TouchableOpacity>
-      </View>
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>NOM D’OPÉRATEUR</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Jean Dupont"
+              placeholderTextColor={colors.textMuted}
+              autoCapitalize="words"
+              value={name}
+              onChangeText={setName}
+              returnKeyType="next"
+              onSubmitEditing={() => emailRef.current?.focus()}
+              blurOnSubmit={false}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>EMAIL ADRESSE</Text>
+            <TextInput
+              ref={emailRef}
+              style={styles.input}
+              placeholder="operateur@meshfind.net"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+              returnKeyType="next"
+              onSubmitEditing={() => passwordRef.current?.focus()}
+              blurOnSubmit={false}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>MOT DE PASSE (MINIMUM 6 CARACTÈRES)</Text>
+            <TextInput
+              ref={passwordRef}
+              style={styles.input}
+              placeholder="••••••••••••"
+              placeholderTextColor={colors.textMuted}
+              secureTextEntry
+              autoCapitalize="none"
+              value={password}
+              onChangeText={setPassword}
+              returnKeyType="next"
+              onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+              blurOnSubmit={false}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>CONFIRMER LE MOT DE PASSE</Text>
+            <TextInput
+              ref={confirmPasswordRef}
+              style={styles.input}
+              placeholder="••••••••••••"
+              placeholderTextColor={colors.textMuted}
+              secureTextEntry
+              autoCapitalize="none"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              returnKeyType="done"
+              onSubmitEditing={handleRegister}
+            />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.registerButton, isLoading ? styles.buttonDisabled : null]}
+            onPress={handleRegister}
+            disabled={isLoading}>
+            {isLoading ? (
+              <ActivityIndicator color={colors.background} />
+            ) : (
+              <Text style={styles.registerButtonText}>GÉNÉRER L’ACCÈS RÉSEAU</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.loginLink} onPress={() => router.push('/(auth)/login')}>
+            <Text style={styles.loginLinkText}>
+              Déjà inscrit ? <Text style={{ color: colors.primary }}>SE CONNECTER</Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -163,6 +179,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 24,
   },

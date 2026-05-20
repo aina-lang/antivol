@@ -63,9 +63,14 @@ export const apiService = {
     return response.data;
   },
 
+  async updateProfile(payload: { name?: string; password?: string }): Promise<any> {
+    const response = await api.put('/auth/profile', payload);
+    return response.data;
+  },
+
   // Enregistrer cet appareil
-  async registerDevice(deviceId: string, model: string): Promise<any> {
-    const response = await api.post('/devices/register', { deviceId, model });
+  async registerDevice(deviceId: string, model: string, expoPushToken?: string): Promise<any> {
+    const response = await api.post('/devices/register', { deviceId, model, expoPushToken });
     return response.data;
   },
 
@@ -110,7 +115,7 @@ export const apiService = {
       const queue: OfflineDetection[] = JSON.parse(rawQueue);
       if (queue.length === 0) return;
 
-      console.log(`📡 [Sync Queue] Détection de ${queue.length} rapports en attente de synchronisation...`);
+      console.log(`[Sync Queue] Detection de ${queue.length} rapports en attente de synchronisation...`);
 
       const remainingQueue: OfflineDetection[] = [];
 
@@ -118,14 +123,14 @@ export const apiService = {
         try {
           // Tenter d'envoyer directement via l'API brute
           await api.post('/detections', item);
-          console.log(`✅ [Sync Queue] Rapport synchronisé avec succès pour l'ID: ${item.bleId}`);
+          console.log(`[Sync Queue] Rapport synchronise avec succes pour l'ID: ${item.bleId}`);
         } catch (err: any) {
           // Si cela échoue encore à cause du réseau, on le garde dans la file
           if (!err.response || err.message === 'Network Error') {
             remainingQueue.push(item);
           } else {
             // Si c'est une autre erreur (ex: mauvaise donnée, id inexistant), on le supprime pour ne pas bloquer la file
-            console.warn(`⚠️ [Sync Queue] Suppression d'un rapport invalide de la file d'attente:`, err.message);
+            console.warn(`[Sync Queue] Suppression d'un rapport invalide de la file d'attente:`, err.message);
           }
         }
       }
@@ -134,7 +139,7 @@ export const apiService = {
         await SecureStore.setItemAsync(OFFLINE_QUEUE_KEY, JSON.stringify(remainingQueue));
       } else {
         await SecureStore.deleteItemAsync(OFFLINE_QUEUE_KEY);
-        console.log('🎉 [Sync Queue] Tous les rapports hors-ligne ont été synchronisés avec succès !');
+        console.log('[Sync Queue] Tous les rapports hors-ligne ont ete synchronises avec succes !');
       }
     } catch (error) {
       console.error('Erreur lors de la synchronisation de la file hors-ligne:', error);
@@ -161,7 +166,7 @@ export const apiService = {
     } catch (error: any) {
       // 3. En cas d'erreur de réseau (hors-ligne), empiler dans la file d'attente
       if (!error.response || error.message === 'Network Error') {
-        console.log(`📶 [Offline Queue] Téléphone hors-ligne. Mise en file d'attente de la détection pour "${payload.bleId}"...`);
+        console.log(`[Offline Queue] Telephone hors-ligne. Mise en file d'attente de la detection pour "${payload.bleId}"...`);
         try {
           const rawQueue = await SecureStore.getItemAsync(OFFLINE_QUEUE_KEY);
           const queue: OfflineDetection[] = rawQueue ? JSON.parse(rawQueue) : [];
@@ -174,10 +179,10 @@ export const apiService = {
           if (!isDuplicate) {
             queue.push(payload);
             await SecureStore.setItemAsync(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
-            console.log(`📦 [Offline Queue] Détection sauvegardée localement (${queue.length} en attente).`);
+            console.log(`[Offline Queue] Detection sauvegardee localement (${queue.length} en attente).`);
           }
         } catch (storeErr) {
-          console.error("Échec d'enregistrement local de la détection hors-ligne:", storeErr);
+          console.error("Echec d'enregistrement local de la detection hors-ligne:", storeErr);
         }
       }
       throw error;

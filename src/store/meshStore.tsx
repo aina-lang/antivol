@@ -47,6 +47,8 @@ interface MeshContextType {
   forgotPassword: (email: string) => Promise<any>;
   resetPassword: (payload: { email: string; code: string; password?: string }) => Promise<any>;
   logout: () => Promise<void>;
+  updateProfile: (payload: { name?: string; password?: string }) => Promise<void>;
+  registerCurrentDevice: () => Promise<void>;
   loadMyDevices: () => Promise<void>;
   declareDeviceLost: (description?: string) => Promise<void>;
   declareDeviceSecured: () => Promise<void>;
@@ -56,6 +58,12 @@ interface MeshContextType {
   setDetectedDevices: React.Dispatch<React.SetStateAction<DetectedBLEDevice[]>>;
   focusCoords: { lat: number; lng: number } | null;
   setFocusCoords: (coords: { lat: number; lng: number } | null) => void;
+  deleteAlert: (id: string) => void;
+  clearAllAlerts: () => void;
+  deleteDetection: (id: string) => void;
+  clearAllDetections: () => void;
+  protectedCount: number;
+  loadProtectedStats: () => Promise<void>;
 }
 
 const MeshContext = createContext<MeshContextType | undefined>(undefined);
@@ -73,6 +81,7 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [lostDeviceDetections, setLostDeviceDetections] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSessionLoading, setIsSessionLoading] = useState<boolean>(true);
+  const [protectedCount, setProtectedCount] = useState<number>(0);
 
   // Récupérer ou générer les infos persistantes du terminal local
   const getLocalDeviceDetails = async () => {
@@ -87,6 +96,17 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { deviceId: id, model: fullModel };
   };
 
+  const loadProtectedStats = useCallback(async () => {
+    try {
+      const stats = await apiService.getProtectedStats();
+      if (stats && typeof stats.count === 'number') {
+        setProtectedCount(stats.count);
+      }
+    } catch (err) {
+      console.warn("Échec du chargement des statistiques de protection:", err);
+    }
+  }, []);
+
   // Charger la session utilisateur au démarrage
   useEffect(() => {
     async function loadSession() {
@@ -99,18 +119,27 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const details = await getLocalDeviceDetails();
         setLocalDevice(details);
 
+        let pushToken = undefined;
+        try {
+          const fetchedToken = await notificationService.registerForPushNotificationsAsync();
+          if (fetchedToken) pushToken = fetchedToken;
+        } catch (pushErr) {
+          console.warn("Echec d'obtention du token push pour enregistrement", pushErr);
+        }
+
         if (storedUser && storedToken) {
           setUser(storedUser);
           // Auto-enregistrer l'appareil sous le compte connecté (Un téléphone = Un compte seulement)
           try {
-            await apiService.registerDevice(details.deviceId, details.model);
+            await apiService.registerDevice(details.deviceId, details.model, pushToken);
           } catch (regErr) {
-            console.warn("Échec d'auto-enregistrement de l'appareil", regErr);
+            console.warn("Echec d'auto-enregistrement de l'appareil", regErr);
           }
           // Charger ses appareils s'il est connecté
           const myDevices = await apiService.getMyDevices().catch(() => []);
           setDevices(myDevices);
         }
+        await loadProtectedStats().catch(() => {});
       } catch (error) {
         console.error('Erreur au chargement de la session', error);
       } finally {
@@ -154,16 +183,20 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setPrevHistoryCount(history.length);
           setLostDeviceDetections(history);
         }
-      } catch (err) {
-        console.error("Erreur d'initialisation de l'écouteur de détection:", err);
+      } catch (err: any) {
+        if (err.message === 'Network Error' || !err.response) {
+          console.log("[Suivi Detection] Telephone hors-ligne au demarrage (veille reseau).");
+        } else {
+          console.error("Erreur d'initialisation de l'ecouteur de detection:", err);
+        }
       }
     };
 
     initHistory();
 
-    // Démarrer le polling toutes les 7 secondes
     intervalId = setInterval(async () => {
       try {
+        loadProtectedStats().catch(() => {});
         const history = await apiService.getDeviceHistory(lostDevice.deviceId);
         if (!isMounted) return;
 
@@ -180,17 +213,19 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           await Notifications.scheduleNotificationAsync({
             content: {
-              title: '🚨 Appareil repéré !',
-              body: `Votre appareil "${lostDevice.model.toUpperCase()}" vient d'être localisé par le réseau communautaire MeshFind à Madagascar !`,
+              title: 'Appareil repere !',
+              body: `Votre appareil "${lostDevice.model.toUpperCase()}" vient d'etre localise par le reseau communautaire MeshFind a Madagascar !`,
               sound: true,
               priority: Notifications.AndroidNotificationPriority.HIGH,
             },
-            trigger: null,
+            trigger: {
+              channelId: 'meshfind-alerts',
+            },
           });
 
           addAlert({
-            title: '🚨 Appareil repéré !',
-            body: `Localisé à ${new Date(parseInt(newDetection.timestamp)).toLocaleTimeString()}`,
+            title: 'Appareil repere !',
+            body: `Localise a ${new Date(parseInt(newDetection.timestamp)).toLocaleTimeString()}`,
             lat: parseFloat(newDetection.latitude),
             lng: parseFloat(newDetection.longitude),
           });
@@ -198,8 +233,12 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Mettre à jour le compte
         setPrevHistoryCount(history.length);
-      } catch (err) {
-        console.error("Erreur de suivi temps-réel de détection:", err);
+      } catch (err: any) {
+        if (err.message === 'Network Error' || !err.response) {
+          console.log("[Suivi Detection] Telephone hors-ligne (veille reseau).");
+        } else {
+          console.error("Erreur de suivi temps-reel de detection:", err);
+        }
       }
     }, 7000);
 
@@ -220,9 +259,9 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let isMounted = true;
     let intervalId: NodeJS.Timeout;
 
-    // Démarrer la boucle autonome du Helper toutes les 12 secondes
     intervalId = setInterval(async () => {
       try {
+        loadProtectedStats().catch(() => {});
         // Tenter de synchroniser la file d'attente hors-ligne si la connexion est revenue
         apiService.syncOfflineQueue().catch(() => {});
 
@@ -236,7 +275,7 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (filtered.length > 0 && isMounted) {
           const targetId = filtered[0];
-          console.log(`🟢 [Téléphone B - HELPER] Auto-Scan : Détection automatique autonome de l'ID perdu "${targetId}"`);
+          console.log(`[Telephone B - HELPER] Auto-Scan : Detection automatique autonome de l'ID perdu "${targetId}"`);
 
           // 3. Obtenir la position GPS (instantanée, fallback si besoin)
           const hasPermission = await Location.getForegroundPermissionsAsync();
@@ -256,28 +295,34 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
             timestamp: Date.now(),
           });
 
-          console.log(`🟢 [Téléphone B - HELPER] ✅ Upload autonome de détection réussi pour "${targetId}" !`);
+          console.log(`[Telephone B - HELPER] Upload autonome de detection reussi pour "${targetId}" !`);
 
           // 5. Alerter l'Helper par une notification locale
           await Notifications.scheduleNotificationAsync({
             content: {
-              title: '🚨 Radar communautaire : Succès !',
-              body: `Merci ! Votre radar vient d'aider à localiser l'appareil perdu "${targetId}" à Madagascar.`,
+              title: 'Radar communautaire : Succes !',
+              body: `Merci ! Votre radar vient d'aider a localiser l'appareil perdu "${targetId}" a Madagascar.`,
               sound: true,
               priority: Notifications.AndroidNotificationPriority.HIGH,
             },
-            trigger: null,
+            trigger: {
+              channelId: 'meshfind-alerts',
+            },
           });
 
           addAlert({
-            title: '🚨 Radar communautaire : Succès !',
-            body: `Appareil perdu "${targetId}" localisé et signalé.`,
+            title: 'Radar communautaire : Succes !',
+            body: `Appareil perdu "${targetId}" localise et signale.`,
             lat,
             lng,
           });
         }
-      } catch (err) {
-        console.error("Erreur dans la boucle autonome du Helper:", err);
+      } catch (err: any) {
+        if (err.message === 'Network Error' || !err.response) {
+          console.log("[Auto-Scan Helper] Telephone hors-ligne (en attente de connexion).");
+        } else {
+          console.error("Erreur dans la boucle autonome du Helper:", err);
+        }
       }
     }, 12000);
 
@@ -300,10 +345,19 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Auto-enregistrer le terminal après connexion
       const details = await getLocalDeviceDetails();
       setLocalDevice(details);
+
+      let pushToken = undefined;
       try {
-        await apiService.registerDevice(details.deviceId, details.model);
+        const fetchedToken = await notificationService.registerForPushNotificationsAsync();
+        if (fetchedToken) pushToken = fetchedToken;
+      } catch (pushErr) {
+        console.warn("Echec d'obtention du token push après connexion", pushErr);
+      }
+
+      try {
+        await apiService.registerDevice(details.deviceId, details.model, pushToken);
       } catch (regErr) {
-        console.warn("Échec d'auto-enregistrement du terminal après connexion", regErr);
+        console.warn("Echec d'auto-enregistrement du terminal après connexion", regErr);
       }
 
       // Charger les appareils
@@ -373,6 +427,33 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setDevices([]);
   };
 
+  const updateProfile = async (payload: { name?: string; password?: string }) => {
+    try {
+      const updatedUser = await apiService.updateProfile(payload);
+      setUser(updatedUser);
+      await authService.setUserData(updatedUser);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Erreur lors de la mise à jour du profil');
+    }
+  };
+
+  const registerCurrentDevice = async () => {
+    try {
+      const details = await getLocalDeviceDetails();
+      let pushToken = undefined;
+      try {
+        const fetchedToken = await notificationService.registerForPushNotificationsAsync();
+        if (fetchedToken) pushToken = fetchedToken;
+      } catch (pushErr) {
+        console.warn("Echec d'obtention du token push lors de l'association", pushErr);
+      }
+      await apiService.registerDevice(details.deviceId, details.model, pushToken);
+      await loadMyDevices();
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || "Erreur lors de l'association de l'appareil");
+    }
+  };
+
   const loadMyDevices = useCallback(async () => {
     try {
       const myDevices = await apiService.getMyDevices();
@@ -386,6 +467,7 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await apiService.declareLost(description);
       await loadMyDevices();
+      await loadProtectedStats().catch(() => {});
       addAlert({
         title: 'Recherche active !',
         body: `Votre appareil est recherché par le réseau MeshFind à Madagascar.`,
@@ -399,6 +481,7 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await apiService.declareSecured();
       await loadMyDevices();
+      await loadProtectedStats().catch(() => {});
       addAlert({
         title: 'Appareil sécurisé',
         body: 'Recherche active annulée. Votre appareil est à nouveau en sécurité.',
@@ -431,6 +514,22 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAlerts((prev) => [newAlert, ...prev]);
   };
 
+  const deleteAlert = (id: string) => {
+    setAlerts((prev) => prev.filter((a) => a.id !== id));
+  };
+
+  const clearAllAlerts = () => {
+    setAlerts([]);
+  };
+
+  const deleteDetection = (id: string) => {
+    setLostDeviceDetections((prev) => prev.filter((d) => d.id !== id));
+  };
+
+  const clearAllDetections = () => {
+    setLostDeviceDetections([]);
+  };
+
   return (
     <MeshContext.Provider
       value={{
@@ -451,6 +550,8 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
         forgotPassword,
         resetPassword,
         logout,
+        updateProfile,
+        registerCurrentDevice,
         loadMyDevices,
         declareDeviceLost,
         declareDeviceSecured,
@@ -461,6 +562,12 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
         lostDeviceDetections,
         focusCoords,
         setFocusCoords,
+        deleteAlert,
+        clearAllAlerts,
+        deleteDetection,
+        clearAllDetections,
+        protectedCount,
+        loadProtectedStats,
       }}>
       {children}
     </MeshContext.Provider>

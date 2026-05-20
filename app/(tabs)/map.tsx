@@ -6,27 +6,27 @@ import { MapView, MapMarker } from '../../src/components/MapView';
 import { apiService } from '../../src/services/api';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function FollowMap() {
-  const { currentLocation, devices, focusCoords, setFocusCoords, isServiceActive } = useMesh();
+  const {
+    currentLocation,
+    devices,
+    focusCoords,
+    setFocusCoords,
+    isServiceActive,
+    protectedCount,
+    loadProtectedStats,
+  } = useMesh();
   const [markers, setMarkers] = useState<MapMarker[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [selectedDeviceName, setSelectedDeviceName] = useState<string | null>(null);
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number; accuracy?: number } | null>(null);
-  const [activeNodesCount, setActiveNodesCount] = useState<number>(0);
 
-  // Charger le nombre de nœuds protégés réels à Madagascar
+  // Charger le nombre de nœuds protégés réels au montage
   useEffect(() => {
-    async function loadActiveNodes() {
-      try {
-        const stats = await apiService.getProtectedStats();
-        setActiveNodesCount(stats.count);
-      } catch (err) {
-        setActiveNodesCount(0);
-      }
-    }
-    loadActiveNodes();
-  }, []);
+    loadProtectedStats().catch(() => {});
+  }, [loadProtectedStats]);
 
   // Charger l'historique des détections pour les appareils déclarés perdus
   useEffect(() => {
@@ -107,8 +107,10 @@ export default function FollowMap() {
     }
   }, [focusCoords, setFocusCoords]);
 
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: Math.max(insets.top, 15) }]}>
       <StatusBar style="light" />
 
       {/* En-tête de carte */}
@@ -151,7 +153,7 @@ export default function FollowMap() {
         <ScrollView style={styles.statsScroll} contentContainerStyle={styles.statsContent}>
           <View style={styles.statRow}>
             <Text style={styles.statLabel}>Noeuds actifs à Madagascar</Text>
-            <Text style={styles.statValue}>{activeNodesCount}</Text>
+            <Text style={styles.statValue}>{protectedCount}</Text>
           </View>
           <View style={styles.statRow}>
             <Text style={styles.statLabel}>Marqueurs de détections affichés</Text>
@@ -187,7 +189,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingTop: 50,
   },
   header: {
     paddingHorizontal: 20,

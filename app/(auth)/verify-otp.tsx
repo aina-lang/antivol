@@ -8,9 +8,11 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../src/constants/colors';
 import { useMesh } from '../../src/store/meshStore';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -55,92 +57,106 @@ export default function VerifyOtp() {
     }
   };
 
+  const insets = useSafeAreaInsets();
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}>
       <StatusBar style="light" />
 
-      <View style={styles.header}>
-        <Text style={styles.brandTitle}>MESH//FIND</Text>
-        <Text style={styles.subTitle}>VALIDATION DU CANAL SÉCURISÉ</Text>
-      </View>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: Math.max(insets.top, 30),
+            paddingBottom: Math.max(insets.bottom, 20),
+          }
+        ]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled">
 
-      <View style={styles.form}>
-        {errorMsg && (
-          <View style={styles.errorBox}>
-            <MaterialCommunityIcons
-              name="alert-circle-outline"
-              size={16}
-              color={colors.danger}
-              style={{ marginRight: 8 }}
-            />
-            <Text style={styles.errorText}>{errorMsg}</Text>
-          </View>
-        )}
-
-        {successMsg && (
-          <View style={styles.successBox}>
-            <MaterialCommunityIcons
-              name="check-circle-outline"
-              size={16}
-              color={colors.success || '#00E676'}
-              style={{ marginRight: 8 }}
-            />
-            <Text style={styles.successText}>{successMsg}</Text>
-          </View>
-        )}
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>EMAIL ADRESSE</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="operateur@meshfind.net"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
-            returnKeyType="next"
-            onSubmitEditing={() => codeRef.current?.focus()}
-            blurOnSubmit={false}
-          />
+        <View style={styles.header}>
+          <Text style={styles.brandTitle}>MESH//FIND</Text>
+          <Text style={styles.subTitle}>VALIDATION DU CANAL SÉCURISÉ</Text>
         </View>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>CODE DE VALIDATION OTP (6 CHIFFRES)</Text>
-          <TextInput
-            ref={codeRef}
-            style={styles.input}
-            placeholder="123456"
-            placeholderTextColor={colors.textMuted}
-            keyboardType="number-pad"
-            maxLength={6}
-            autoCapitalize="none"
-            value={code}
-            onChangeText={setCode}
-            returnKeyType="done"
-            onSubmitEditing={handleVerify}
-          />
-        </View>
-
-        <TouchableOpacity
-          style={[styles.verifyButton, isLoading ? styles.buttonDisabled : null]}
-          onPress={handleVerify}
-          disabled={isLoading}>
-          {isLoading ? (
-            <ActivityIndicator color={colors.background} />
-          ) : (
-            <Text style={styles.verifyButtonText}>ACTIVER LE TERMINAL</Text>
+        <View style={styles.form}>
+          {errorMsg && (
+            <View style={styles.errorBox}>
+              <MaterialCommunityIcons
+                name="alert-circle-outline"
+                size={16}
+                color={colors.danger}
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.errorText}>{errorMsg}</Text>
+            </View>
           )}
-        </TouchableOpacity>
 
-        <TouchableOpacity style={styles.backLink} onPress={() => router.push('/(auth)/login')}>
-          <Text style={styles.backLinkText}>
-            Retourner à <Text style={{ color: colors.primary }}>LA CONNEXION</Text>
-          </Text>
-        </TouchableOpacity>
-      </View>
+          {successMsg && (
+            <View style={styles.successBox}>
+              <MaterialCommunityIcons
+                name="check-circle-outline"
+                size={16}
+                color={colors.success || '#00E676'}
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.successText}>{successMsg}</Text>
+            </View>
+          )}
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>EMAIL ADRESSE</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="operateur@meshfind.net"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+              returnKeyType="next"
+              onSubmitEditing={() => codeRef.current?.focus()}
+              blurOnSubmit={false}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>CODE DE VALIDATION OTP (6 CHIFFRES)</Text>
+            <TextInput
+              ref={codeRef}
+              style={styles.input}
+              placeholder="123456"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="number-pad"
+              maxLength={6}
+              autoCapitalize="none"
+              value={code}
+              onChangeText={setCode}
+              returnKeyType="done"
+              onSubmitEditing={handleVerify}
+            />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.verifyButton, isLoading ? styles.buttonDisabled : null]}
+            onPress={handleVerify}
+            disabled={isLoading}>
+            {isLoading ? (
+              <ActivityIndicator color={colors.background} />
+            ) : (
+              <Text style={styles.verifyButtonText}>ACTIVER LE TERMINAL</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.backLink} onPress={() => router.push('/(auth)/login')}>
+            <Text style={styles.backLinkText}>
+              Retourner à <Text style={{ color: colors.primary }}>LA CONNEXION</Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -149,6 +165,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 24,
   },

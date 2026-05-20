@@ -71,17 +71,17 @@ TaskManager.defineTask(config.MESH_MAIN_TASK, async ({ data, error }) => {
 
     // Déterminer dynamiquement le rôle de ce téléphone
     const isLocalLost = localDeviceId && lostBLEIds.some(id => id.toLowerCase() === localDeviceId.toLowerCase());
-    const rolePrefix = isLocalLost ? "🔴 [Téléphone A - VICTIME]" : "🟢 [Téléphone B - HELPER]";
+    const rolePrefix = isLocalLost ? "[VICTIME]" : "[HELPER]";
 
     console.log(
-      `${rolePrefix} Localisation reçue: ${currentLat}, ${currentLng} (Précision: ${currentAccuracy}m)`
+      `${rolePrefix} Localisation recue: ${currentLat}, ${currentLng} (Precision: ${currentAccuracy}m)`
     );
 
     if (fetchFailed) {
-      console.warn(`${rolePrefix} ⚠️ Échec de récupération des IDs perdus (réseau injoignable), lecture du cache.`);
+      console.warn(`${rolePrefix} [Attention] Echec de recuperation des IDs perdus (reseau injoignable), lecture du cache.`);
     } else {
       console.log(
-        `${rolePrefix} Liste des IDs d'appareils déclarés PERDUS sur le réseau :`,
+        `${rolePrefix} Liste des IDs d'appareils declares PERDUS sur le reseau :`,
         lostBLEIds
       );
     }
@@ -96,25 +96,25 @@ TaskManager.defineTask(config.MESH_MAIN_TASK, async ({ data, error }) => {
 
     if (filteredLostIds.length === 0) {
       console.log(
-        `${rolePrefix} Aucun ID perdu (hors cet appareil) actuellement déclaré sur le réseau. Scan BLE omis.`
+        `${rolePrefix} Aucun ID perdu (hors cet appareil) actuellement declare sur le reseau. Scan BLE omis.`
       );
       return;
     }
 
     console.log(
-      `${rolePrefix} ${filteredLostIds.length} ID(s) recherché(s) dans le cache communautaire (hors cet appareil).`
+      `${rolePrefix} ${filteredLostIds.length} ID(s) recherche(s) dans le cache communautaire (hors cet appareil).`
     );
 
     // 2. Veille Réseau Active : Auto-détecter et signaler les appareils perdus sur le réseau
     if (filteredLostIds.length > 0) {
       const demoId = filteredLostIds[0];
-      console.log(`${rolePrefix} 📡 Détection automatique active pour l'ID: ${demoId}`);
+      console.log(`${rolePrefix} [Signal] Detection automatique active pour l'ID: ${demoId}`);
       
       // Lancer le signalement automatique après un délai de 3 secondes pour imiter le scan
       setTimeout(async () => {
         try {
           const now = Date.now();
-          console.log(`${rolePrefix} Envoi automatique de la détection pour l'ID: ${demoId}`);
+          console.log(`${rolePrefix} Envoi automatique de la detection pour l'ID: ${demoId}`);
           
           await apiService.reportDetection({
             bleId: demoId,
@@ -124,20 +124,22 @@ TaskManager.defineTask(config.MESH_MAIN_TASK, async ({ data, error }) => {
             timestamp: now,
           });
           
-          console.log(`${rolePrefix} ✅ Upload de détection communautaire réussi pour: ${demoId}`);
+          console.log(`${rolePrefix} [Succes] Upload de detection communautaire reussi pour: ${demoId}`);
           
           // Alerter le Helper par notification locale tactile
           await Notifications.scheduleNotificationAsync({
             content: {
-              title: '🚨 Radar communautaire : Succès !',
-              body: `Merci ! Votre radar vient d'aider à localiser l'appareil perdu "${demoId}" à proximité.`,
+              title: 'Radar communautaire : Succes !',
+              body: `Merci ! Votre radar vient d'aider a localiser l'appareil perdu "${demoId}" a proximite.`,
               sound: true,
               priority: Notifications.AndroidNotificationPriority.HIGH,
             },
-            trigger: null,
+            trigger: {
+              channelId: 'meshfind-alerts',
+            },
           });
         } catch (demoErr) {
-          console.error(`${rolePrefix} ❌ Échec du signalement de détection:`, demoErr);
+          console.error(`${rolePrefix} [Erreur] Echec du signalement de detection:`, demoErr);
         }
       }, 3000);
     }
@@ -157,7 +159,7 @@ TaskManager.defineTask(config.MESH_MAIN_TASK, async ({ data, error }) => {
 
       if (isLost) {
         console.log(
-          `🚨 [DÉTECTION] Appareil perdu "${deviceIdentifier}" capté ! Signal RSSI: ${bleDevice.rssi}`
+          `[DETECTION] Appareil perdu "${deviceIdentifier}" capte ! Signal RSSI: ${bleDevice.rssi}`
         );
 
         // 3. Appliquer la déduplication
@@ -188,14 +190,14 @@ TaskManager.defineTask(config.MESH_MAIN_TASK, async ({ data, error }) => {
 
         if (alreadyReported) {
           console.log(
-            `[Background Task] Détection pour "${deviceIdentifier}" ignorée (déduplication active).`
+            `[Background Task] Detection pour "${deviceIdentifier}" ignoree (deduplication active).`
           );
           return;
         }
 
         // 4. Envoyer anonymement au Backend
         console.log(
-          `📡 [UPLOAD] Envoi de la position pour "${deviceIdentifier}" au serveur NestJS...`
+          `[UPLOAD] Envoi de la position pour "${deviceIdentifier}" au serveur NestJS...`
         );
         try {
           await apiService.reportDetection({
@@ -214,25 +216,27 @@ TaskManager.defineTask(config.MESH_MAIN_TASK, async ({ data, error }) => {
             timestamp: now,
           });
           await SecureStore.setItemAsync(REPORTED_CACHE_KEY, JSON.stringify(reportedCache));
-          console.log(`✅ [UPLOAD] Détection enregistrée pour "${deviceIdentifier}".`);
+          console.log(`[UPLOAD] Detection enregistree pour "${deviceIdentifier}".`);
 
           // Alerter le Helper par une notification locale tactile !
           try {
             await Notifications.scheduleNotificationAsync({
               content: {
-                title: '🚨 Radar communautaire : Succès !',
-                body: `Merci ! Votre radar vient d'aider à localiser l'appareil perdu "${deviceIdentifier}" à proximité.`,
+                title: 'Radar communautaire : Succes !',
+                body: `Merci ! Votre radar vient d'aider a localiser l'appareil perdu "${deviceIdentifier}" a proximite.`,
                 sound: true,
                 priority: Notifications.AndroidNotificationPriority.HIGH,
               },
-              trigger: null,
+              trigger: {
+                channelId: 'meshfind-alerts',
+              },
             });
           } catch (notifError) {
-            console.warn('Impossible de déclencher la notification du Helper:', notifError);
+            console.warn('Impossible de declencher la notification du Helper:', notifError);
           }
         } catch (uploadError) {
           console.error(
-            `❌ Échec de l'upload de la détection pour "${deviceIdentifier}":`,
+            `[Erreur] Echec de l'upload de la detection pour "${deviceIdentifier}":`,
             uploadError
           );
         }

@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../src/constants/colors';
 import { RadarScanner } from '../src/components/RadarScanner';
 import { useLocation } from '../src/hooks/useLocation';
@@ -14,6 +15,7 @@ export default function Onboarding() {
   const { requestPermissions } = useLocation();
   const { completeOnboarding } = useMesh();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
 
   const handleNext = async () => {
@@ -54,7 +56,7 @@ export default function Onboarding() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: Math.max(insets.top, 20), paddingBottom: Math.max(insets.bottom, 20) }]}>
       <StatusBar style="light" />
 
       {/* Bouton passer en haut à droite */}

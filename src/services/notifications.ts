@@ -15,11 +15,6 @@ Notifications.setNotificationHandler({
 export const notificationService = {
   // Demander la permission et récupérer le token
   async registerForPushNotificationsAsync(): Promise<string | null> {
-    if (!Device.isDevice) {
-      console.warn('Les notifications push nécessitent un appareil physique.');
-      return null;
-    }
-
     let token: string | null = null;
 
     try {
@@ -36,12 +31,7 @@ export const notificationService = {
         return null;
       }
 
-      // Récupérer le token de notification Expo
-      const expoToken = await Notifications.getExpoPushTokenAsync();
-      token = expoToken.data;
-      console.log('Expo Push Token récupéré avec succès:', token);
-
-      // Spécifique Android pour canaux d'alertes à fort impact
+      // Toujours enregistrer le canal de notification Android pour les alertes locales et distantes
       if (Platform.OS === 'android') {
         await Notifications.setNotificationChannelAsync('meshfind-alerts', {
           name: 'Alertes MeshFind',
@@ -50,8 +40,21 @@ export const notificationService = {
           lightColor: '#00D4FF',
         });
       }
-    } catch (error) {
-      console.error("Erreur d'enregistrement aux notifications push", error);
+
+      if (!Device.isDevice) {
+        console.warn('Les notifications push distantes (token) nécessitent un appareil physique.');
+        return null;
+      }
+
+      // Récupérer le token de notification Expo
+      const expoToken = await Notifications.getExpoPushTokenAsync();
+      token = expoToken.data;
+      console.log('Expo Push Token récupéré avec succès:', token);
+    } catch (error: any) {
+      console.warn(
+        "Notice: Enregistrement aux notifications push distantes indisponible en local (Firebase non configuré).",
+        error?.message || error
+      );
     }
 
     return token;

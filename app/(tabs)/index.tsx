@@ -10,13 +10,24 @@ import { BleSignalCard } from '../../src/components/BleSignalCard';
 import { MapView } from '../../src/components/MapView';
 import { useLocation } from '../../src/hooks/useLocation';
 import { foregroundLocationService } from '../../src/background/foregroundService';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { apiService } from '../../src/services/api';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 
 export default function Dashboard() {
-  const { user, isServiceActive, toggleService, detectedDevices, currentLocation, updateLocation, lostDeviceDetections, devices } =
-    useMesh();
+  const {
+    user,
+    isServiceActive,
+    toggleService,
+    detectedDevices,
+    currentLocation,
+    updateLocation,
+    lostDeviceDetections,
+    devices,
+    protectedCount,
+    loadProtectedStats,
+  } = useMesh();
 
   // Déterminer si l'utilisateur est une victime (a un téléphone perdu)
   const isVictim = useMemo(() => {
@@ -25,7 +36,6 @@ export default function Dashboard() {
 
   const router = useRouter();
   const { getCurrentLocation } = useLocation();
-  const [protectedCount, setProtectedCount] = useState(0);
   const [mapLoading, setMapLoading] = useState(false);
 
   // Convertir les détections communautaires en marqueurs Leaflet de couleur Rouge (mémorisés)
@@ -90,9 +100,8 @@ export default function Dashboard() {
     async function initDashboard() {
       setMapLoading(true);
       try {
-        // Charger le nombre de téléphones protégés à proximité
-        const stats = await apiService.getProtectedStats().catch(() => ({ count: 0 }));
-        setProtectedCount(stats.count);
+        // Charger le nombre de téléphones protégés via le store global
+        await loadProtectedStats().catch(() => {});
 
         // Récupérer la position GPS actuelle
         const coords = await getCurrentLocation();
@@ -154,8 +163,8 @@ export default function Dashboard() {
             timestamp: Date.now(),
           });
 
-          Alert.alert(
-            '📡 DÉTECTION TRANSMISE !',
+           Alert.alert(
+            'DETECTION TRANSMISE !',
             `Succès ! Votre radar vient de capter le signal de l'appareil perdu "${targetId}". Ses coordonnées GPS ont été envoyées à la victime en temps réel.`,
             [{ text: 'EXCELLENT', style: 'default' }]
           );
@@ -165,14 +174,14 @@ export default function Dashboard() {
 
       // Si aucun autre appareil n'est perdu sur le réseau
       Alert.alert(
-        '🛡️ PROTECTION ACTIVE',
+        'PROTECTION ACTIVE',
         'Votre récepteur Mesh BLE veille en arrière-plan en continu pour protéger votre téléphone et localiser les appareils perdus à Madagascar.',
         [{ text: 'ENTENDU', style: 'default' }]
       );
     } catch (err: any) {
       console.warn("Échec du scan manuel tactique:", err);
       Alert.alert(
-        '🛡️ PROTECTION ACTIVE',
+        'PROTECTION ACTIVE',
         'Votre récepteur Mesh BLE veille en arrière-plan en continu pour protéger votre téléphone et localiser les appareils perdus à Madagascar.',
         [{ text: 'ENTENDU', style: 'default' }]
       );
@@ -181,12 +190,14 @@ export default function Dashboard() {
     }
   };
 
+  const insets = useSafeAreaInsets();
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
 
       {/* Header Tactique Fixe */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 15) }]}>
         <View>
           <Text style={styles.welcomeText}>OPÉRATEUR MESH</Text>
           <Text style={styles.userName}>{user?.name || 'ANONYME'}</Text>
@@ -196,7 +207,7 @@ export default function Dashboard() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, 20) }]}>
         {/* Badge de statut pulsant */}
         <View style={styles.badgeWrapper}>
           <StatusBadge isActive={isServiceActive} protectedCount={protectedCount} />
