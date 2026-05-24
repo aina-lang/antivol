@@ -21,9 +21,12 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { login, isLoading } = useMesh();
   const router = useRouter();
-
+  const insets = useSafeAreaInsets();
   const passwordRef = useRef<TextInput>(null);
 
   const handleLogin = async () => {
@@ -34,13 +37,10 @@ export default function Login() {
     setErrorMsg(null);
     try {
       await login(email, password);
-      // RootLayout NavigationGuard redirigera automatiquement vers /(tabs)
     } catch (e: any) {
       setErrorMsg(e.message || 'Identifiants invalides.');
     }
   };
-
-  const insets = useSafeAreaInsets();
 
   return (
     <KeyboardAvoidingView
@@ -52,19 +52,21 @@ export default function Login() {
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingTop: Math.max(insets.top, 30),
+            paddingTop: Math.max(insets.top, 40),
             paddingBottom: Math.max(insets.bottom, 20),
-          }
+          },
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled">
 
+        {/* Brand header */}
         <View style={styles.header}>
           <Text style={styles.brandTitle}>MESH//FIND</Text>
           <Text style={styles.subTitle}>ENTREZ VOS IDENTIFIANTS TACTIQUES</Text>
         </View>
 
         <View style={styles.form}>
+          {/* Error */}
           {errorMsg && (
             <View style={styles.errorBox}>
               <MaterialCommunityIcons
@@ -77,42 +79,76 @@ export default function Login() {
             </View>
           )}
 
-          <View style={styles.inputContainer}>
+          {/* Email */}
+          <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>EMAIL ADRESSE</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="operateur@meshfind.net"
-              placeholderTextColor={colors.textMuted}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={email}
-              onChangeText={setEmail}
-              returnKeyType="next"
-              onSubmitEditing={() => passwordRef.current?.focus()}
-              blurOnSubmit={false}
-            />
+            <View style={[styles.inputWrapper, emailFocused && styles.inputWrapperFocused]}>
+              <MaterialCommunityIcons
+                name="email-outline"
+                size={18}
+                color={emailFocused ? colors.primary : colors.textMuted}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="operateur@meshfind.net"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
+                onFocus={() => setEmailFocused(true)}
+                onBlur={() => setEmailFocused(false)}
+                returnKeyType="next"
+                onSubmitEditing={() => passwordRef.current?.focus()}
+                blurOnSubmit={false}
+              />
+            </View>
           </View>
 
-          <View style={styles.inputContainer}>
+          {/* Password */}
+          <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>MOT DE PASSE</Text>
-            <TextInput
-              ref={passwordRef}
-              style={styles.input}
-              placeholder="••••••••••••"
-              placeholderTextColor={colors.textMuted}
-              secureTextEntry
-              autoCapitalize="none"
-              value={password}
-              onChangeText={setPassword}
-              returnKeyType="done"
-              onSubmitEditing={handleLogin}
-            />
+            <View style={[styles.inputWrapper, passwordFocused && styles.inputWrapperFocused]}>
+              <MaterialCommunityIcons
+                name="lock-outline"
+                size={18}
+                color={passwordFocused ? colors.primary : colors.textMuted}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                ref={passwordRef}
+                style={[styles.input, { flex: 1 }]}
+                placeholder="••••••••••••"
+                placeholderTextColor={colors.textMuted}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                value={password}
+                onChangeText={setPassword}
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
+                returnKeyType="done"
+                onSubmitEditing={handleLogin}
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.eyeBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <MaterialCommunityIcons
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={18}
+                  color={colors.textMuted}
+                />
+              </TouchableOpacity>
+            </View>
           </View>
 
+          {/* Submit */}
           <TouchableOpacity
-            style={[styles.loginButton, isLoading ? styles.buttonDisabled : null]}
+            style={[styles.loginButton, isLoading && styles.buttonDisabled]}
             onPress={handleLogin}
-            disabled={isLoading}>
+            disabled={isLoading}
+            activeOpacity={0.85}>
             {isLoading ? (
               <ActivityIndicator color={colors.background} />
             ) : (
@@ -120,11 +156,15 @@ export default function Login() {
             )}
           </TouchableOpacity>
 
+          {/* Register link */}
           <TouchableOpacity
             style={styles.registerLink}
             onPress={() => router.push('/(auth)/register')}>
             <Text style={styles.registerLinkText}>
-              Pas encore de compte ? <Text style={{ color: colors.primary }}>CRÉER UN ACCÈS</Text>
+              Pas encore de compte ?{' '}
+              <Text style={{ color: colors.primary, fontFamily: 'Orbitron_700Bold' }}>
+                CRÉER UN ACCÈS
+              </Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -149,30 +189,30 @@ const styles = StyleSheet.create({
   },
   brandTitle: {
     fontFamily: 'Orbitron_700Bold',
-    fontSize: 26,
+    fontSize: 28,
     color: colors.primary,
     letterSpacing: 4,
     textShadowColor: colors.primaryGlow,
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
+    textShadowRadius: 12,
   },
   subTitle: {
     fontFamily: 'SpaceMono_400Regular',
     fontSize: 10,
     color: colors.textSecondary,
-    marginTop: 8,
+    marginTop: 10,
     letterSpacing: 1,
   },
   form: {
     width: '100%',
   },
   errorBox: {
-    backgroundColor: colors.danger + '20', // Rouge transparent
+    backgroundColor: colors.danger + '18',
     borderWidth: 1,
     borderColor: colors.danger,
-    borderRadius: 6,
-    padding: 12,
-    marginBottom: 20,
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 24,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -182,8 +222,8 @@ const styles = StyleSheet.create({
     color: colors.danger,
     flex: 1,
   },
-  inputContainer: {
-    marginBottom: 24,
+  inputGroup: {
+    marginBottom: 20,
   },
   inputLabel: {
     fontFamily: 'Orbitron_700Bold',
@@ -192,31 +232,46 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     letterSpacing: 1.5,
   },
-  input: {
-    width: '100%',
-    height: 50,
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 16,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    height: 52,
+  },
+  inputWrapperFocused: {
+    borderColor: colors.primary + '70',
+  },
+  inputIcon: {
+    marginRight: 10,
+  },
+  input: {
+    flex: 1,
     fontFamily: 'SpaceMono_400Regular',
     fontSize: 13,
     color: colors.textPrimary,
+    height: '100%',
+  },
+  eyeBtn: {
+    padding: 4,
+    marginLeft: 4,
   },
   loginButton: {
     width: '100%',
-    height: 52,
+    height: 54,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 8,
-    marginTop: 16,
+    borderRadius: 10,
+    marginTop: 8,
     shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -228,7 +283,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   registerLink: {
-    marginTop: 24,
+    marginTop: 28,
     alignItems: 'center',
   },
   registerLinkText: {

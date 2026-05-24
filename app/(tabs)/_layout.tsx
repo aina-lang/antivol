@@ -61,12 +61,12 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="journal"
         options={{
-          title: 'PROFIL',
+          title: 'JOURNAL',
           tabBarIcon: ({ color, size, focused }) => (
             <MaterialCommunityIcons
-              name="shield-account-outline"
+              name="clipboard-list-outline"
               size={focused ? 24 : size || 22}
               color={color}
             />

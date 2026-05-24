@@ -27,7 +27,6 @@ export default function DeclareLost() {
   const { declareDeviceLost, declareDeviceSecured, localDevice, devices } = useMesh();
   const router = useRouter();
 
-  // Déterminer si le terminal local est actuellement déclaré perdu dans le store
   const myDevice = devices.find((d) => d.deviceId === localDevice?.deviceId);
   const isCurrentlyLost = myDevice ? myDevice.isLost : false;
 
@@ -39,19 +38,19 @@ export default function DeclareLost() {
         await declareDeviceSecured();
         Alert.alert(
           'Recherche Annulée',
-          'Votre appareil a été déclaré comme retrouvé. Il est désormais sécurisé.',
+          "Votre appareil a été déclaré comme retrouvé. Il est désormais sécurisé.",
           [{ text: 'OK', onPress: () => router.back() }]
         );
       } else {
         await declareDeviceLost(description);
         Alert.alert(
           'Alerte Réseau Lancée',
-          'Votre appareil a été déclaré perdu. Toute la communauté MeshFind à Madagascar est en écoute active.',
+          "Votre appareil a été déclaré perdu. Toute la communauté MeshFind à Madagascar est en écoute active.",
           [{ text: 'OK', onPress: () => router.back() }]
         );
       }
     } catch (e: any) {
-      setErrorMsg(e.message || 'Impossible de modifier le statut de l’appareil.');
+      setErrorMsg(e.message || "Impossible de modifier le statut de l'appareil.");
     } finally {
       setSubmitting(false);
     }
@@ -63,21 +62,51 @@ export default function DeclareLost() {
       style={styles.container}>
       <StatusBar style="light" />
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 20), paddingBottom: Math.max(insets.bottom, 20) }]}>
-        {/* Header tactique modal */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
-            <Text style={styles.closeText}>FERMER</Text>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: Math.max(insets.top, 20),
+            paddingBottom: Math.max(insets.bottom, 40),
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}>
+
+        {/* Navigation header */}
+        <View style={styles.navRow}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
+            <MaterialCommunityIcons name="chevron-left" size={20} color={colors.textSecondary} />
+            <Text style={styles.backText}>RETOUR</Text>
           </TouchableOpacity>
-          <Text style={[styles.modalTitle, isCurrentlyLost ? styles.titleLost : null]}>
-            {isCurrentlyLost ? 'RECHERCHE ACTIVE' : 'ALERTE ANTI-VOL'}
-          </Text>
+        </View>
+
+        {/* Page header */}
+        <View style={styles.header}>
+          <View style={styles.headerAccentRow}>
+            <View
+              style={[
+                styles.headerAccentBar,
+                { backgroundColor: isCurrentlyLost ? colors.danger : colors.primary },
+              ]}
+            />
+            <Text
+              style={[
+                styles.modalTitle,
+                { color: isCurrentlyLost ? colors.danger : colors.primary },
+              ]}>
+              {isCurrentlyLost ? 'RECHERCHE ACTIVE' : 'ALERTE ANTI-VOL'}
+            </Text>
+          </View>
           <Text style={styles.modalSub}>
-            {isCurrentlyLost ? 'LE RÉSEAU LOCALISE VOTRE APPAREIL' : 'DÉCLARATION DE PERTE TACTIQUE'}
+            {isCurrentlyLost
+              ? 'LE RÉSEAU LOCALISE VOTRE APPAREIL'
+              : 'DÉCLARATION DE PERTE TACTIQUE'}
           </Text>
         </View>
 
         <View style={styles.form}>
+          {/* Error */}
           {errorMsg && (
             <View style={styles.errorBox}>
               <MaterialCommunityIcons
@@ -90,18 +119,39 @@ export default function DeclareLost() {
             </View>
           )}
 
+          {/* Device card */}
           {localDevice && (
-            <View style={[styles.deviceCard, isCurrentlyLost ? styles.deviceCardLost : null]}>
+            <View
+              style={[
+                styles.deviceCard,
+                isCurrentlyLost && {
+                  borderColor: colors.danger,
+                  backgroundColor: colors.danger + '0A',
+                  shadowColor: colors.danger,
+                  shadowOpacity: 0.18,
+                  shadowRadius: 12,
+                  elevation: 6,
+                },
+              ]}>
               <View style={styles.deviceHeader}>
-                <MaterialCommunityIcons
-                  name={isCurrentlyLost ? 'alert-octagon' : 'cellphone-wireless'}
-                  size={26}
-                  color={isCurrentlyLost ? colors.danger : colors.success}
-                  style={{ marginRight: 12 }}
-                />
-                <View style={{ flex: 1 }}>
+                <View
+                  style={[
+                    styles.deviceIconWrapper,
+                    {
+                      backgroundColor: (isCurrentlyLost ? colors.danger : colors.success) + '18',
+                    },
+                  ]}>
+                  <MaterialCommunityIcons
+                    name={isCurrentlyLost ? 'alert-octagon' : 'cellphone-wireless'}
+                    size={24}
+                    color={isCurrentlyLost ? colors.danger : colors.success}
+                  />
+                </View>
+                <View style={{ flex: 1, marginLeft: 14 }}>
                   <Text style={styles.deviceLabel}>
-                    {isCurrentlyLost ? 'APPAREIL DÉCLARÉ VOLÉ / PERDU' : 'APPAREIL ENREGISTRÉ À CE COMPTE'}
+                    {isCurrentlyLost
+                      ? 'APPAREIL DÉCLARÉ VOLÉ / PERDU'
+                      : 'APPAREIL ENREGISTRÉ À CE COMPTE'}
                   </Text>
                   <Text style={styles.deviceModel}>{localDevice.model.toUpperCase()}</Text>
                   <Text style={styles.deviceId} numberOfLines={1}>
@@ -114,6 +164,10 @@ export default function DeclareLost() {
                   </View>
                 )}
               </View>
+
+              {/* Divider */}
+              <View style={styles.cardDivider} />
+
               <Text style={styles.fieldHint}>
                 {isCurrentlyLost
                   ? "Cet appareil émet des signaux d'urgence et est activement recherché par le réseau de veille communautaire MeshFind à Madagascar."
@@ -122,41 +176,69 @@ export default function DeclareLost() {
             </View>
           )}
 
+          {/* Description field (only when declaring lost) */}
           {!isCurrentlyLost && (
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>INFORMATIONS SUPPLÉMENTAIRES (FACULTATIF)</Text>
               <TextInput
-                style={[styles.input, styles.multilineInput]}
+                style={styles.multilineInput}
                 placeholder="Ex: Coque noire, volé près du marché Analakely à Tananarive..."
                 placeholderTextColor={colors.textMuted}
                 multiline
                 numberOfLines={4}
                 value={description}
                 onChangeText={setDescription}
+                textAlignVertical="top"
               />
             </View>
           )}
 
+          {/* Info notice */}
+          <View
+            style={[
+              styles.infoNotice,
+              {
+                borderColor: (isCurrentlyLost ? colors.success : colors.warning) + '40',
+                backgroundColor: (isCurrentlyLost ? colors.success : colors.warning) + '08',
+              },
+            ]}>
+            <MaterialCommunityIcons
+              name={isCurrentlyLost ? 'information-outline' : 'broadcast'}
+              size={15}
+              color={isCurrentlyLost ? colors.success : colors.warning}
+              style={{ marginRight: 8, marginTop: 1 }}
+            />
+            <Text style={[styles.infoText, { color: isCurrentlyLost ? colors.success : colors.warning }]}>
+              {isCurrentlyLost
+                ? "Confirmer cette action retirera votre appareil de la liste de recherche active."
+                : "Une fois déclaré, tous les appareils MeshFind actifs commenceront immédiatement la veille Bluetooth de votre modèle."}
+            </Text>
+          </View>
+
+          {/* Action button */}
           <TouchableOpacity
             style={[
               styles.declareBtn,
-              isCurrentlyLost ? styles.cancelBtn : null,
-              submitting ? styles.btnDisabled : null,
+              isCurrentlyLost && styles.cancelBtn,
+              submitting && styles.btnDisabled,
             ]}
             onPress={handleDeclareOrCancel}
-            disabled={submitting}>
+            disabled={submitting}
+            activeOpacity={0.85}>
             {submitting ? (
-              <ActivityIndicator color={colors.textPrimary} />
+              <ActivityIndicator color={colors.textPrimary} size="small" />
             ) : (
               <View style={styles.btnContent}>
                 <MaterialCommunityIcons
                   name={isCurrentlyLost ? 'shield-check' : 'alert-decagram'}
                   size={18}
                   color={colors.textPrimary}
-                  style={{ marginRight: 8 }}
+                  style={{ marginRight: 10 }}
                 />
                 <Text style={styles.declareBtnText}>
-                  {isCurrentlyLost ? 'ANNULER L’ALERTE / APPAREIL RETROUVÉ' : 'PROPAGER L’ALERTE DE RECHERCHE'}
+                  {isCurrentlyLost
+                    ? "ANNULER L'ALERTE — APPAREIL RETROUVÉ"
+                    : "PROPAGER L'ALERTE DE RECHERCHE"}
                 </Text>
               </View>
             )}
@@ -177,50 +259,63 @@ const styles = StyleSheet.create({
     paddingTop: 40,
     paddingBottom: 40,
   },
-  header: {
-    marginBottom: 36,
-    position: 'relative',
+  navRow: {
+    marginBottom: 28,
   },
-  closeBtn: {
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     alignSelf: 'flex-start',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     borderWidth: 1,
     borderColor: colors.border,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    marginBottom: 20,
+    borderRadius: 8,
+    backgroundColor: colors.surface,
   },
-  closeText: {
+  backText: {
     fontFamily: 'Orbitron_700Bold',
     fontSize: 9,
     color: colors.textSecondary,
     letterSpacing: 1,
+    marginLeft: 2,
+  },
+  header: {
+    marginBottom: 32,
+  },
+  headerAccentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  headerAccentBar: {
+    width: 4,
+    height: 26,
+    borderRadius: 3,
+    marginRight: 12,
   },
   modalTitle: {
     fontFamily: 'Orbitron_700Bold',
     fontSize: 22,
-    color: colors.danger,
     letterSpacing: 2,
-  },
-  titleLost: {
-    color: colors.danger,
   },
   modalSub: {
     fontFamily: 'SpaceMono_400Regular',
     fontSize: 10,
     color: colors.textSecondary,
-    marginTop: 6,
+    marginTop: 4,
+    marginLeft: 16,
     letterSpacing: 1,
   },
   form: {
     width: '100%',
   },
   errorBox: {
-    backgroundColor: colors.danger + '20',
+    backgroundColor: colors.danger + '18',
     borderWidth: 1,
     borderColor: colors.danger,
-    borderRadius: 6,
-    padding: 12,
+    borderRadius: 10,
+    padding: 14,
     marginBottom: 20,
     flexDirection: 'row',
     alignItems: 'center',
@@ -231,8 +326,78 @@ const styles = StyleSheet.create({
     color: colors.danger,
     flex: 1,
   },
-  inputContainer: {
+  deviceCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    padding: 16,
     marginBottom: 24,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  deviceIconWrapper: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  deviceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  deviceLabel: {
+    fontFamily: 'Orbitron_700Bold',
+    fontSize: 8,
+    color: colors.textSecondary,
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  deviceModel: {
+    fontFamily: 'SpaceMono_400Regular',
+    fontSize: 14,
+    color: colors.textPrimary,
+    fontWeight: 'bold',
+  },
+  deviceId: {
+    fontFamily: 'SpaceMono_400Regular',
+    fontSize: 10,
+    color: colors.textSecondary,
+    marginTop: 3,
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginBottom: 12,
+  },
+  lostBadge: {
+    backgroundColor: colors.danger,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    alignSelf: 'center',
+    marginLeft: 8,
+  },
+  lostBadgeText: {
+    fontFamily: 'Orbitron_700Bold',
+    fontSize: 8,
+    color: colors.textPrimary,
+    letterSpacing: 0.5,
+  },
+  fieldHint: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 11,
+    color: colors.textSecondary,
+    lineHeight: 16,
+  },
+  inputContainer: {
+    marginBottom: 20,
   },
   inputLabel: {
     fontFamily: 'Orbitron_700Bold',
@@ -241,43 +406,46 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     letterSpacing: 1.5,
   },
-  input: {
+  multilineInput: {
     width: '100%',
-    height: 50,
+    height: 110,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 8,
+    borderRadius: 10,
     paddingHorizontal: 16,
-    fontFamily: 'SpaceMono_400Regular',
-    fontSize: 13,
-    color: colors.textPrimary,
-  },
-  multilineInput: {
-    height: 100,
     paddingTop: 14,
-    textAlignVertical: 'top',
+    fontFamily: 'Inter_400Regular',
+    fontSize: 12,
+    color: colors.textPrimary,
+    lineHeight: 18,
   },
-  fieldHint: {
+  infoNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 24,
+  },
+  infoText: {
     fontFamily: 'Inter_400Regular',
     fontSize: 11,
-    color: colors.textMuted,
-    marginTop: 8,
-    lineHeight: 15,
+    lineHeight: 16,
+    flex: 1,
   },
   declareBtn: {
     width: '100%',
-    height: 54,
+    height: 58,
     backgroundColor: colors.danger,
-    borderRadius: 8,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 16,
     shadowColor: colors.danger,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 8,
   },
   cancelBtn: {
     backgroundColor: colors.success,
@@ -288,60 +456,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   btnDisabled: {
-    opacity: 0.6,
+    opacity: 0.55,
   },
   declareBtnText: {
     fontFamily: 'Orbitron_700Bold',
     fontSize: 11,
     color: colors.textPrimary,
     letterSpacing: 1,
-  },
-  deviceCard: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 24,
-  },
-  deviceCardLost: {
-    borderColor: colors.danger,
-    backgroundColor: colors.danger + '10',
-  },
-  deviceHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  deviceLabel: {
-    fontFamily: 'Orbitron_700Bold',
-    fontSize: 9,
-    color: colors.textSecondary,
-    letterSpacing: 1,
-  },
-  deviceModel: {
-    fontFamily: 'SpaceMono_400Regular',
-    fontSize: 14,
-    color: colors.textPrimary,
-    fontWeight: 'bold',
-    marginTop: 4,
-  },
-  deviceId: {
-    fontFamily: 'SpaceMono_400Regular',
-    fontSize: 10,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  lostBadge: {
-    backgroundColor: colors.danger,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 4,
-    alignSelf: 'center',
-  },
-  lostBadgeText: {
-    fontFamily: 'Orbitron_700Bold',
-    fontSize: 9,
-    color: colors.textPrimary,
   },
 });

@@ -8,6 +8,7 @@ import Animated, {
   withDelay,
   interpolate,
   Easing,
+  SharedValue,
 } from 'react-native-reanimated';
 import { colors } from '../constants/colors';
 
@@ -35,7 +36,7 @@ const PulsingCircle = ({ delay }: { delay: number }) => {
 };
 
 // Rotating radar sweep beam
-const SweepBeam = ({ rotationValue }: { rotationValue: Animated.SharedValue<number> }) => {
+const SweepBeam = ({ rotationValue }: { rotationValue: SharedValue<number> }) => {
   const sweepStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotationValue.value}deg` }],
   }));

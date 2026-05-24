@@ -8,6 +8,38 @@ import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+// Reusable accent-bar title
+function AccentTitle({ label, sub }: { label: string; sub?: string }) {
+  return (
+    <View>
+      <View style={accentStyles.row}>
+        <View style={accentStyles.bar} />
+        <Text style={accentStyles.title}>{label}</Text>
+      </View>
+      {sub ? <Text style={accentStyles.sub}>{sub}</Text> : null}
+    </View>
+  );
+}
+
+const accentStyles = StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'center' },
+  bar: { width: 3, height: 14, borderRadius: 2, backgroundColor: colors.primary, marginRight: 8 },
+  title: {
+    fontFamily: 'Orbitron_700Bold',
+    fontSize: 13,
+    color: colors.primary,
+    letterSpacing: 2,
+  },
+  sub: {
+    fontFamily: 'SpaceMono_400Regular',
+    fontSize: 10,
+    color: colors.textSecondary,
+    marginTop: 5,
+    marginLeft: 11,
+    letterSpacing: 0.5,
+  },
+});
+
 export default function FollowMap() {
   const {
     currentLocation,
@@ -23,19 +55,16 @@ export default function FollowMap() {
   const [selectedDeviceName, setSelectedDeviceName] = useState<string | null>(null);
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number; accuracy?: number } | null>(null);
 
-  // Charger le nombre de nœuds protégés réels au montage
   useEffect(() => {
     loadProtectedStats().catch(() => {});
   }, [loadProtectedStats]);
 
-  // Charger l'historique des détections pour les appareils déclarés perdus
   useEffect(() => {
     async function fetchLostDevicesDetections() {
       if (devices.length === 0) return;
 
       const lostDevice = devices.find((d) => d.isLost === true);
       if (!lostDevice) {
-        // Aucun appareil perdu, n'afficher que la position de l'utilisateur
         if (currentLocation) {
           setMarkers([
             {
@@ -54,7 +83,6 @@ export default function FollowMap() {
       setLoadingHistory(true);
       try {
         const history = await apiService.getDeviceHistory(lostDevice.deviceId);
-
         const historyMarkers: MapMarker[] = history.map((det: any, index: number) => ({
           id: `det-${index}`,
           position: { lat: parseFloat(det.latitude), lng: parseFloat(det.longitude) },
@@ -63,7 +91,6 @@ export default function FollowMap() {
           title: `Détecté le ${new Date(parseInt(det.timestamp)).toLocaleDateString()} à ${new Date(parseInt(det.timestamp)).toLocaleTimeString()}`,
         }));
 
-        // Ajouter la position de l'opérateur courant en vert/bleu
         if (currentLocation) {
           historyMarkers.push({
             id: 'my-location',
@@ -73,10 +100,8 @@ export default function FollowMap() {
             title: 'Votre Position (Détecteur actif)',
           });
         }
-
         setMarkers(historyMarkers);
 
-        // Centrer par défaut sur le signal le plus récent s'il n'y a pas de focusCoords
         if (history.length > 0 && !focusCoords) {
           setMapCenter({
             lat: parseFloat(history[0].latitude),
@@ -85,7 +110,7 @@ export default function FollowMap() {
           });
         }
       } catch (err) {
-        console.error('Erreur au chargement de l’historique tactique:', err);
+        console.error("Erreur au chargement de l'historique tactique:", err);
       } finally {
         setLoadingHistory(false);
       }
@@ -94,15 +119,9 @@ export default function FollowMap() {
     fetchLostDevicesDetections();
   }, [devices, currentLocation]);
 
-  // Écouter focusCoords pour recentrer la carte sur demande
   useEffect(() => {
     if (focusCoords) {
-      setMapCenter({
-        lat: focusCoords.lat,
-        lng: focusCoords.lng,
-        accuracy: 10,
-      });
-      // Libérer focusCoords après centrage
+      setMapCenter({ lat: focusCoords.lat, lng: focusCoords.lng, accuracy: 10 });
       setFocusCoords(null);
     }
   }, [focusCoords, setFocusCoords]);
@@ -113,21 +132,32 @@ export default function FollowMap() {
     <View style={[styles.container, { paddingTop: Math.max(insets.top, 15) }]}>
       <StatusBar style="light" />
 
-      {/* En-tête de carte */}
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>VISUALISEUR DE RENSEIGNEMENT</Text>
-        {selectedDeviceName ? (
+        <AccentTitle
+          label="VISUALISEUR DE RENSEIGNEMENT"
+          sub={
+            selectedDeviceName
+              ? undefined
+              : 'VEILLE RÉSEAU MESH ACTIVÉE'
+          }
+        />
+        {selectedDeviceName && (
           <View style={styles.trackingBadge}>
+            <MaterialCommunityIcons
+              name="crosshairs-gps"
+              size={11}
+              color={colors.danger}
+              style={{ marginRight: 5 }}
+            />
             <Text style={styles.trackingText}>
-              SUIVI ACTIF : {selectedDeviceName.toUpperCase()}
+              SUIVI : {selectedDeviceName.toUpperCase()}
             </Text>
           </View>
-        ) : (
-          <Text style={styles.subText}>VEILLE RÉSEAU MESH ACTIVÉE</Text>
         )}
       </View>
 
-      {/* Zone Cartographique */}
+      {/* Map area */}
       <View style={styles.mapContainer}>
         {currentLocation || mapCenter ? (
           <MapView
@@ -141,14 +171,20 @@ export default function FollowMap() {
         ) : (
           <View style={styles.noLocationContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.noLocationText}>INTERCEPTIONS DU SIGNAL GPS EN COURS...</Text>
+            <Text style={styles.noLocationText}>INTERCEPTION DU SIGNAL GPS EN COURS</Text>
           </View>
         )}
       </View>
 
-      {/* Overlay du bas de carte (Rapport tactique) */}
+      {/* Bottom panel */}
       <View style={styles.panel}>
-        <Text style={styles.panelTitle}>RAPPORT SUR L’ÉTAT DU SIGNAL</Text>
+        {/* Decorative top line */}
+        <View style={styles.panelTopLine} />
+
+        <View style={styles.panelTitleRow}>
+          <MaterialCommunityIcons name="signal" size={13} color={colors.primary} style={{ marginRight: 6 }} />
+          <Text style={styles.panelTitle}>RAPPORT D'ÉTAT DU SIGNAL</Text>
+        </View>
 
         <ScrollView style={styles.statsScroll} contentContainerStyle={styles.statsContent}>
           <View style={styles.statRow}>
@@ -161,7 +197,11 @@ export default function FollowMap() {
           </View>
           <View style={styles.statRow}>
             <Text style={styles.statLabel}>Statut du récepteur BLE</Text>
-            <Text style={[styles.statValue, { color: isServiceActive ? colors.success : colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.statValue,
+                { color: isServiceActive ? colors.success : colors.textSecondary },
+              ]}>
               {isServiceActive ? 'ACTIF' : 'INACTIF'}
             </Text>
           </View>
@@ -169,13 +209,13 @@ export default function FollowMap() {
             <View style={styles.alertNotice}>
               <MaterialCommunityIcons
                 name="alert-circle-outline"
-                size={16}
+                size={15}
                 color={colors.danger}
                 style={{ marginRight: 8, marginTop: 1 }}
               />
               <Text style={styles.alertNoticeText}>
-                Le réseau transmet en direct les coordonnées de votre {selectedDeviceName} perdu
-                au terminal de recherche de la police de proximité.
+                Le réseau transmet en direct les coordonnées de votre{' '}
+                {selectedDeviceName} perdu au terminal de recherche de la police de proximité.
               </Text>
             </View>
           )}
@@ -194,34 +234,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 16,
   },
-  title: {
-    fontFamily: 'Orbitron_700Bold',
-    fontSize: 14,
-    color: colors.primary,
-    letterSpacing: 2,
-  },
-  subText: {
-    fontFamily: 'SpaceMono_400Regular',
-    fontSize: 10,
-    color: colors.textSecondary,
-    marginTop: 4,
-    letterSpacing: 0.5,
-  },
   trackingBadge: {
-    backgroundColor: colors.danger + '20',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.danger + '18',
     borderColor: colors.danger,
     borderWidth: 1,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 4,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 6,
     alignSelf: 'flex-start',
-    marginTop: 6,
+    marginTop: 8,
+    marginLeft: 11,
   },
   trackingText: {
     fontFamily: 'SpaceMono_400Regular',
     fontSize: 10,
     color: colors.danger,
     fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
   mapContainer: {
     flex: 1.2,
@@ -237,12 +268,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 16,
+    gap: 12,
   },
   noLocationText: {
-    marginTop: 12,
     fontFamily: 'SpaceMono_400Regular',
     fontSize: 10,
     color: colors.textSecondary,
+    letterSpacing: 0.5,
   },
   panel: {
     flex: 0.8,
@@ -252,17 +284,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderGlow,
     marginTop: 16,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    paddingTop: 16,
   },
-  panelTitle: {
-    fontFamily: 'Orbitron_700Bold',
-    fontSize: 11,
-    color: colors.textPrimary,
-    letterSpacing: 1.5,
+  panelTopLine: {
+    width: 40,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: colors.primary + '50',
+    alignSelf: 'center',
+    marginBottom: 14,
+  },
+  panelTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    paddingBottom: 8,
+    paddingBottom: 10,
+  },
+  panelTitle: {
+    fontFamily: 'Orbitron_700Bold',
+    fontSize: 10,
+    color: colors.textPrimary,
+    letterSpacing: 1.5,
   },
   statsScroll: {
     flex: 1,
@@ -273,7 +319,7 @@ const styles = StyleSheet.create({
   statRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 8,
+    paddingVertical: 9,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
@@ -292,8 +338,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.danger + '10',
     borderWidth: 1,
     borderColor: colors.danger + '40',
-    borderRadius: 8,
-    padding: 10,
+    borderRadius: 10,
+    padding: 12,
     marginTop: 14,
     flexDirection: 'row',
     alignItems: 'flex-start',

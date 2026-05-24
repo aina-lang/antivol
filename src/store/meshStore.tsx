@@ -107,6 +107,15 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  const loadMyDevices = useCallback(async () => {
+    try {
+      const myDevices = await apiService.getMyDevices();
+      setDevices(myDevices);
+    } catch (error) {
+      console.error('Erreur de chargement des appareils', error);
+    }
+  }, []);
+
   // Charger la session utilisateur au démarrage
   useEffect(() => {
     async function loadSession() {
@@ -463,15 +472,6 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error(error.response?.data?.message || "Erreur lors de l'association de l'appareil");
     }
   };
-
-  const loadMyDevices = useCallback(async () => {
-    try {
-      const myDevices = await apiService.getMyDevices();
-      setDevices(myDevices);
-    } catch (error) {
-      console.error('Erreur de chargement des appareils', error);
-    }
-  }, []);
 
   const declareDeviceLost = async (description?: string) => {
     try {
