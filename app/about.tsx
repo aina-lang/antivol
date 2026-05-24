@@ -31,7 +31,7 @@ export default function About() {
           <View style={styles.logoIconWrapper}>
             <MaterialCommunityIcons name="radar" size={48} color={colors.primary} />
           </View>
-          <Text style={styles.appName}>MESHFIND</Text>
+          <Text style={styles.appName}>FARORATRA</Text>
           <Text style={styles.appVersion}>Version 1.0.0 (Build tactique)</Text>
         </View>
 
@@ -42,7 +42,7 @@ export default function About() {
             <Text style={styles.infoTitle}>RÉSEAU COMMUNAUTAIRE</Text>
           </View>
           <Text style={styles.infoText}>
-            MeshFind est un système de protection antivol basé sur un réseau communautaire maillé (Mesh) à Madagascar. 
+            Faroratra est un système de protection antivol basé sur un réseau communautaire maillé (Mesh) à Madagascar. 
             Chaque téléphone de l'écosystème contribue anonymement à localiser les appareils déclarés volés.
           </Text>
         </View>
@@ -78,7 +78,7 @@ export default function About() {
         </View>
 
         <Text style={styles.copyright}>
-          © 2026 MeshFind Madagascar.{'\n'}Tous droits réservés.
+          © 2026 Faroratra Madagascar.{'\n'}Tous droits réservés.
         </Text>
       </ScrollView>
     </View>

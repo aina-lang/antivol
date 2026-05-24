@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { config } from '../constants/config';
 import { authService } from './auth';
 
-const OFFLINE_QUEUE_KEY = 'meshfind_offline_detections_queue';
+const OFFLINE_QUEUE_KEY = 'faroratra_offline_detections_queue';
 
 export interface OfflineDetection {
   bleId: string;

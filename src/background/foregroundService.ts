@@ -32,7 +32,7 @@ export const foregroundLocationService = {
         accuracy: Location.Accuracy.Balanced,
         // Options Android pour le Foreground Service persistent
         foregroundService: {
-          notificationTitle: 'MeshFind — Protection Active',
+          notificationTitle: 'Faroratra — Protection Active',
           notificationBody: 'Veille communautaire active à Madagascar.',
           notificationColor: '#00D4FF',
           killServiceOnDestroy: false,

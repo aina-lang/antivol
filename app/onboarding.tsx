@@ -179,7 +179,7 @@ export default function Onboarding() {
             <Text style={styles.title}>REJOIGNEZ LE RÉSEAU</Text>
           </View>
           <Text style={styles.description}>
-            MeshFind protège votre téléphone grâce à un réseau Bluetooth communautaire à
+            Faroratra protège votre téléphone grâce à un réseau Bluetooth communautaire à
             Madagascar et partout en Afrique.
           </Text>
         </View>
@@ -195,7 +195,7 @@ export default function Onboarding() {
           </View>
           <Text style={styles.description}>
             Même si votre téléphone perdu est éteint ou hors-ligne, les autres utilisateurs
-            MeshFind captent son signal BLE et vous notifient en temps réel.
+            Faroratra captent son signal BLE et vous notifient en temps réel.
           </Text>
         </View>
 
@@ -213,7 +213,7 @@ export default function Onboarding() {
             <Text style={[styles.title, { color: colors.success }]}>SÉCURITÉ & ANONYMAT</Text>
           </View>
           <Text style={styles.description}>
-            Pour fonctionner en tâche de fond, MeshFind nécessite l'accès Bluetooth et la
+            Pour fonctionner en tâche de fond, Faroratra nécessite l'accès Bluetooth et la
             localisation. Vos données restent 100% anonymes et chiffrées.
           </Text>
         </View>

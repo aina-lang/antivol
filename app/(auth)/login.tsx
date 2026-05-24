@@ -61,7 +61,7 @@ export default function Login() {
 
         {/* Brand header */}
         <View style={styles.header}>
-          <Text style={styles.brandTitle}>MESH//FIND</Text>
+          <Text style={styles.brandTitle}>FARORATRA</Text>
           <Text style={styles.subTitle}>ENTREZ VOS IDENTIFIANTS TACTIQUES</Text>
         </View>
 
@@ -91,7 +91,7 @@ export default function Login() {
               />
               <TextInput
                 style={styles.input}
-                placeholder="operateur@meshfind.net"
+                placeholder="operateur@faroratra.net"
                 placeholderTextColor={colors.textMuted}
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -199,9 +199,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: colors.primary,
     letterSpacing: 4,
-    textShadowColor: colors.primaryGlow,
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 12,
   },
   subTitle: {
     fontFamily: 'SpaceMono_400Regular',

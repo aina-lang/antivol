@@ -86,7 +86,7 @@ export default function ForgotPassword() {
               />
               <TextInput
                 style={styles.input}
-                placeholder="operateur@meshfind.net"
+                placeholder="operateur@faroratra.net"
                 placeholderTextColor={colors.textMuted}
                 keyboardType="email-address"
                 autoCapitalize="none"

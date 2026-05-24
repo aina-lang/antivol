@@ -1,6 +1,6 @@
 export const colors = {
   // Fond
-  background: '#080C14', // Noir bleu profond
+  background: '#0D1421', // Fond sombre principal
   surface: '#0D1421', // Cards et surfaces
   surfaceHover: '#111928', // Hover states
 
@@ -10,7 +10,7 @@ export const colors = {
   primaryGlow: '#00D4FF40', // Glow effect
 
   // Accent secondaire
-  secondary: '#6C47FF', // Violet — MeshFind brand
+  secondary: '#6C47FF', // Violet — Faroratra brand
   secondaryDim: '#6C47FF20',
 
   // États

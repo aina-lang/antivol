@@ -29,7 +29,7 @@ export default function PrivacyPolicy() {
         <View style={styles.contentBox}>
           <Text style={styles.sectionTitle}>1. COLLECTE DES DONNÉES</Text>
           <Text style={styles.paragraph}>
-            L'application MeshFind collecte les données de géolocalisation en arrière-plan afin de
+            L'application Faroratra collecte les données de géolocalisation en arrière-plan afin de
             garantir le bon fonctionnement du réseau maillé (Mesh) pour retrouver les appareils
             perdus. Ces données sont anonymisées avant d'être transmises au serveur.
           </Text>
@@ -43,7 +43,7 @@ export default function PrivacyPolicy() {
 
           <Text style={styles.sectionTitle}>3. PARTAGE DES DONNÉES</Text>
           <Text style={styles.paragraph}>
-            MeshFind ne partage ni ne vend aucune information personnelle ou donnée de
+            Faroratra ne partage ni ne vend aucune information personnelle ou donnée de
             localisation à des tiers. Les données servent uniquement à la communauté pour 
             protéger et retrouver les téléphones volés.
           </Text>

@@ -1,8 +1,8 @@
 import * as SecureStore from 'expo-secure-store';
 
-const TOKEN_KEY = 'meshfind_jwt_token';
-const USER_KEY = 'meshfind_user_data';
-const ONBOARDING_SEEN_KEY = 'meshfind_onboarding_seen';
+const TOKEN_KEY = 'faroratra_jwt_token';
+const USER_KEY = 'faroratra_user_data';
+const ONBOARDING_SEEN_KEY = 'faroratra_onboarding_seen';
 
 export const authService = {
   // Stocker le statut de l'onboarding

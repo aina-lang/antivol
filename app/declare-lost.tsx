@@ -45,7 +45,7 @@ export default function DeclareLost() {
         await declareDeviceLost(description);
         Alert.alert(
           'Alerte Réseau Lancée',
-          "Votre appareil a été déclaré perdu. Toute la communauté MeshFind à Madagascar est en écoute active.",
+          "Votre appareil a été déclaré perdu. Toute la communauté Faroratra à Madagascar est en écoute active.",
           [{ text: 'OK', onPress: () => router.back() }]
         );
       }
@@ -170,8 +170,8 @@ export default function DeclareLost() {
 
               <Text style={styles.fieldHint}>
                 {isCurrentlyLost
-                  ? "Cet appareil émet des signaux d'urgence et est activement recherché par le réseau de veille communautaire MeshFind à Madagascar."
-                  : "Ce terminal est le seul et unique appareil lié à votre compte. Sa perte sera signalée sur l'ensemble du réseau MeshFind de Madagascar."}
+                  ? "Cet appareil émet des signaux d'urgence et est activement recherché par le réseau de veille communautaire Faroratra à Madagascar."
+                  : "Ce terminal est le seul et unique appareil lié à votre compte. Sa perte sera signalée sur l'ensemble du réseau Faroratra de Madagascar."}
               </Text>
             </View>
           )}
@@ -211,7 +211,7 @@ export default function DeclareLost() {
             <Text style={[styles.infoText, { color: isCurrentlyLost ? colors.success : colors.warning }]}>
               {isCurrentlyLost
                 ? "Confirmer cette action retirera votre appareil de la liste de recherche active."
-                : "Une fois déclaré, tous les appareils MeshFind actifs commenceront immédiatement la veille Bluetooth de votre modèle."}
+                : "Une fois déclaré, tous les appareils Faroratra actifs commenceront immédiatement la veille Bluetooth de votre modèle."}
             </Text>
           </View>
 

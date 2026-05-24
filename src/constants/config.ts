@@ -12,7 +12,7 @@ export const config = {
   API_URL: DEV_API_URL,
 
   // Tâche principale en arrière-plan
-  MESH_MAIN_TASK: 'meshfind-main-task',
+  MESH_MAIN_TASK: 'faroratra-main-task',
 
   // Intervalles de fonctionnement du scanner BLE
   BLE_SCAN_INTERVAL: 20000, // Lance un scan toutes les 20 secondes

@@ -29,7 +29,7 @@ export default function TermsOfService() {
         <View style={styles.contentBox}>
           <Text style={styles.sectionTitle}>1. ACCEPTATION DES CONDITIONS</Text>
           <Text style={styles.paragraph}>
-            En utilisant l'application MeshFind, vous acceptez de rejoindre le réseau communautaire 
+            En utilisant l'application Faroratra, vous acceptez de rejoindre le réseau communautaire 
             de détection et de contribuer à la sécurité globale des autres utilisateurs.
           </Text>
 
@@ -42,7 +42,7 @@ export default function TermsOfService() {
 
           <Text style={styles.sectionTitle}>3. LIMITATION DE RESPONSABILITÉ</Text>
           <Text style={styles.paragraph}>
-            L'équipe de MeshFind ne peut garantir le recouvrement systématique d'un appareil volé. 
+            L'équipe de Faroratra ne peut garantir le recouvrement systématique d'un appareil volé. 
             L'efficacité dépend du maillage du réseau (nombre d'utilisateurs actifs dans la zone). 
             Nous déclinons toute responsabilité en cas de perte définitive.
           </Text>

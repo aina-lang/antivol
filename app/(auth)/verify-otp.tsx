@@ -110,18 +110,8 @@ export default function VerifyOtp() {
       style={styles.container}>
       <StatusBar style="light" />
 
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          {
-            paddingTop: Math.max(insets.top, 30),
-            paddingBottom: Math.max(insets.bottom, 20),
-          },
-        ]}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled">
-
-        {/* Back button */}
+      {/* Fixed back button — toujours visible en haut */}
+      <View style={[styles.fixedHeader, { paddingTop: Math.max(insets.top, 12) }]}>
         <TouchableOpacity
           style={styles.backBtn}
           onPress={() => router.push('/(auth)/login')}
@@ -129,10 +119,19 @@ export default function VerifyOtp() {
           <MaterialCommunityIcons name="chevron-left" size={20} color={colors.textSecondary} />
           <Text style={styles.backText}>CONNEXION</Text>
         </TouchableOpacity>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: Math.max(insets.bottom, 20) },
+        ]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled">
 
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.brandTitle}>MESH//FIND</Text>
+          <Text style={styles.brandTitle}>FARORATRA</Text>
           <Text style={styles.subTitle}>VALIDATION DU CANAL SÉCURISÉ</Text>
         </View>
 
@@ -189,7 +188,7 @@ export default function VerifyOtp() {
               />
               <TextInput
                 style={styles.input}
-                placeholder="operateur@meshfind.net"
+                placeholder="operateur@faroratra.net"
                 placeholderTextColor={colors.textMuted}
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -265,6 +264,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  fixedHeader: {
+    paddingHorizontal: 24,
+    paddingBottom: 12,
+    backgroundColor: colors.background,
+  },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
@@ -279,7 +283,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 8,
     backgroundColor: colors.surface,
-    marginBottom: 32,
   },
   backText: {
     fontFamily: 'Orbitron_700Bold',
@@ -297,9 +300,6 @@ const styles = StyleSheet.create({
     fontSize: 26,
     color: colors.primary,
     letterSpacing: 4,
-    textShadowColor: colors.primaryGlow,
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
   },
   subTitle: {
     fontFamily: 'SpaceMono_400Regular',

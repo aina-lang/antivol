@@ -172,7 +172,7 @@ export default function Profile() {
           <View style={styles.profileInfoText}>
             <Text style={styles.profileTitle}>OPÉRATEUR SÉCURITÉ</Text>
             <Text style={styles.profileName}>{user?.name || 'Inconnu'}</Text>
-            <Text style={styles.profileEmail}>{user?.email || 'pas-de-mail@meshfind.net'}</Text>
+            <Text style={styles.profileEmail}>{user?.email || 'pas-de-mail@faroratra.net'}</Text>
           </View>
         </View>
 
@@ -357,7 +357,7 @@ export default function Profile() {
               color={colors.textPrimary}
               style={{ marginRight: 8 }}
             />
-            <Text style={styles.settingBtnText}>À PROPOS DE MESHFIND</Text>
+            <Text style={styles.settingBtnText}>À PROPOS DE FARORATRA</Text>
           </TouchableOpacity>
         </View>
 

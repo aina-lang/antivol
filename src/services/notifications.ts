@@ -33,8 +33,8 @@ export const notificationService = {
 
       // Toujours enregistrer le canal de notification Android pour les alertes locales et distantes
       if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync('meshfind-alerts', {
-          name: 'Alertes MeshFind',
+        await Notifications.setNotificationChannelAsync('faroratra-alerts', {
+          name: 'Alertes Faroratra',
           importance: Notifications.AndroidImportance.MAX,
           vibrationPattern: [0, 250, 250, 250],
           lightColor: '#00D4FF',

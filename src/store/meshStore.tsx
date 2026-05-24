@@ -85,10 +85,10 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Récupérer ou générer les infos persistantes du terminal local
   const getLocalDeviceDetails = async () => {
-    let id = await SecureStore.getItemAsync('meshfind_local_device_id');
+    let id = await SecureStore.getItemAsync('faroratra_local_device_id');
     if (!id) {
-      id = 'MF-' + Math.random().toString(36).substring(2, 10).toUpperCase() + '-' + Math.random().toString(36).substring(2, 10).toUpperCase();
-      await SecureStore.setItemAsync('meshfind_local_device_id', id);
+      id = 'FR-' + Math.random().toString(36).substring(2, 10).toUpperCase() + '-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+      await SecureStore.setItemAsync('faroratra_local_device_id', id);
     }
     const brandName = Device.brand ? Device.brand : '';
     const modelName = Device.modelName ? Device.modelName : 'Terminal Mesh';
@@ -120,6 +120,7 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     async function loadSession() {
       try {
+        // ─── Étape 1 : Lecture locale uniquement (rapide, < 50ms) ───────────
         const storedUser = await authService.getUserData();
         const storedToken = await authService.getToken();
         const seen = await authService.getOnboardingSeen();
@@ -128,32 +129,41 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const details = await getLocalDeviceDetails();
         setLocalDevice(details);
 
-        let pushToken = undefined;
-        try {
-          const fetchedToken = await notificationService.registerForPushNotificationsAsync();
-          if (fetchedToken) pushToken = fetchedToken;
-        } catch (pushErr) {
-          console.warn("Echec d'obtention du token push pour enregistrement", pushErr);
-        }
-
         if (storedUser && storedToken) {
           setUser(storedUser);
-          // Auto-enregistrer l'appareil sous le compte connecté (Un téléphone = Un compte seulement)
-          try {
-            await apiService.registerDevice(details.deviceId, details.model, pushToken);
-          } catch (regErr) {
-            console.warn("Echec d'auto-enregistrement de l'appareil", regErr);
-          }
-          // Charger ses appareils s'il est connecté
-          const myDevices = await apiService.getMyDevices().catch(() => []);
-          setDevices(myDevices);
         }
-        await loadProtectedStats().catch(() => {});
       } catch (error) {
         console.error('Erreur au chargement de la session', error);
       } finally {
+        // ─── Navigation débloquée IMMÉDIATEMENT ────────────────────────────
         setIsSessionLoading(false);
       }
+
+      // ─── Étape 2 : Appels réseau en ARRIÈRE-PLAN (non bloquants) ──────────
+      // Ces appels s'exécutent après que la navigation soit déjà fluide
+      try {
+        const details = await getLocalDeviceDetails();
+        const storedUser = await authService.getUserData();
+        const storedToken = await authService.getToken();
+
+        if (storedUser && storedToken) {
+          // Push token + enregistrement appareil en background
+          notificationService.registerForPushNotificationsAsync()
+            .then((pushToken) => {
+              apiService.registerDevice(details.deviceId, details.model, pushToken || undefined)
+                .catch((e) => console.warn("Echec auto-enregistrement appareil:", e));
+            })
+            .catch((e) => console.warn("Echec obtention push token:", e));
+
+          // Chargement des appareils en background
+          apiService.getMyDevices()
+            .then(setDevices)
+            .catch(() => {});
+        }
+
+        // Stats de protection en background
+        loadProtectedStats().catch(() => {});
+      } catch (_) {}
     }
     loadSession();
 
@@ -228,12 +238,12 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await Notifications.scheduleNotificationAsync({
               content: {
                 title: 'Appareil repere !',
-                body: `Votre appareil "${lostDevice.model.toUpperCase()}" vient d'etre localise par le reseau communautaire MeshFind a Madagascar !`,
+                body: `Votre appareil "${lostDevice.model.toUpperCase()}" vient d'etre localise par le reseau communautaire Faroratra a Madagascar !`,
                 sound: true,
                 priority: Notifications.AndroidNotificationPriority.HIGH,
               },
               trigger: {
-                channelId: 'meshfind-alerts',
+                channelId: 'faroratra-alerts',
               },
             });
 
@@ -289,7 +299,7 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (lostIds.length === 0) return;
 
         // 2. Récupérer notre propre ID local pour l'exclure (anti-auto-détection)
-        const localId = await SecureStore.getItemAsync('meshfind_local_device_id');
+        const localId = await SecureStore.getItemAsync('faroratra_local_device_id');
         const filtered = lostIds.filter(id => id.toLowerCase() !== localId?.toLowerCase());
 
         if (filtered.length > 0 && isMounted) {
@@ -325,7 +335,7 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
               priority: Notifications.AndroidNotificationPriority.HIGH,
             },
             trigger: {
-              channelId: 'meshfind-alerts',
+              channelId: 'faroratra-alerts',
             },
           });
 
@@ -480,7 +490,7 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await loadProtectedStats().catch(() => {});
       addAlert({
         title: 'Recherche active !',
-        body: `Votre appareil est recherché par le réseau MeshFind à Madagascar.`,
+        body: `Votre appareil est recherché par le réseau Faroratra à Madagascar.`,
       });
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Erreur lors du signalement');

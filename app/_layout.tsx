@@ -18,6 +18,7 @@ import { colors } from '../src/constants/colors';
 // Garder le splash screen visible pendant le chargement des polices et de la session
 SplashScreen.preventAutoHideAsync();
 
+
 function NavigationGuard() {
   const { user, isSessionLoading, hasSeenOnboarding } = useMesh();
   const segments = useSegments();

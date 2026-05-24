@@ -5,8 +5,8 @@ import { config } from '../constants/config';
 import { bleScannerService } from './bleScanner';
 import { apiService } from '../services/api';
 
-const LAST_IDS_CACHE_KEY = 'meshfind_lost_ids_cache';
-const REPORTED_CACHE_KEY = 'meshfind_reported_dedup_cache';
+const LAST_IDS_CACHE_KEY = 'faroratra_lost_ids_cache';
+const REPORTED_CACHE_KEY = 'faroratra_reported_dedup_cache';
 
 interface ReportedCacheEntry {
   bleId: string;
@@ -50,7 +50,7 @@ TaskManager.defineTask(config.MESH_MAIN_TASK, async ({ data, error }) => {
   const currentLng = currentCoords.longitude;
   const currentAccuracy = currentCoords.accuracy || 10;
 
-  const localDeviceId = await SecureStore.getItemAsync('meshfind_local_device_id');
+  const localDeviceId = await SecureStore.getItemAsync('faroratra_local_device_id');
 
   try {
     // 1. Récupérer et mettre à jour la liste des IDs perdus (Offline First)
@@ -135,7 +135,7 @@ TaskManager.defineTask(config.MESH_MAIN_TASK, async ({ data, error }) => {
               priority: Notifications.AndroidNotificationPriority.HIGH,
             },
             trigger: {
-              channelId: 'meshfind-alerts',
+              channelId: 'faroratra-alerts',
             },
           });
         } catch (demoErr) {
@@ -228,7 +228,7 @@ TaskManager.defineTask(config.MESH_MAIN_TASK, async ({ data, error }) => {
                 priority: Notifications.AndroidNotificationPriority.HIGH,
               },
               trigger: {
-                channelId: 'meshfind-alerts',
+                channelId: 'faroratra-alerts',
               },
             });
           } catch (notifError) {
