@@ -16,17 +16,27 @@ export default function TabsLayout() {
           <BlurView
             intensity={60}
             tint="dark"
-            style={[StyleSheet.absoluteFill, { backgroundColor: colors.surface + 'CC' }]}
+            style={[StyleSheet.absoluteFill, { backgroundColor: colors.surface + 'CC', borderRadius: 24 }]}
           />
         ),
         tabBarStyle: {
+          position: 'absolute',
+          bottom: Platform.OS === 'ios' ? 24 : 16,
+          left: 20,
+          right: 20,
           backgroundColor: 'transparent',
-          borderTopWidth: 1,
-          borderTopColor: colors.primary + '25',
-          height: Platform.OS === 'ios' ? 84 : 66,
-          paddingBottom: Platform.OS === 'ios' ? 24 : 10,
+          borderTopWidth: 0,
+          borderWidth: 1,
+          borderColor: colors.borderGlow || (colors.primary + '30'),
+          borderRadius: 24,
+          height: 64,
+          paddingBottom: 8,
           paddingTop: 8,
-          elevation: 0,
+          elevation: 10,
+          shadowColor: '#000000',
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.4,
+          shadowRadius: 15,
         },
         tabBarLabelStyle: {
           fontFamily: 'Orbitron_700Bold',
