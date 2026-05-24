@@ -155,8 +155,9 @@ export default function Profile() {
 
       {/* Profile header */}
       <View style={[styles.profileSection, { paddingTop: Math.max(insets.top, 15) }]}>
-        <TouchableOpacity style={{ marginBottom: 20 }} onPress={() => router.back()}>
-          <MaterialCommunityIcons name="chevron-left" size={28} color={colors.textPrimary} />
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
+          <MaterialCommunityIcons name="chevron-left" size={20} color={colors.textSecondary} />
+          <Text style={styles.backBtnText}>RETOUR</Text>
         </TouchableOpacity>
         
         <View style={styles.profileHeaderRow}>
@@ -379,6 +380,25 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   scrollContainer: { flex: 1, backgroundColor: colors.background },
   scrollContent: { paddingHorizontal: 20, paddingTop: 15, paddingBottom: 40 },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    backgroundColor: colors.surface,
+    marginBottom: 20,
+  },
+  backBtnText: {
+    fontFamily: 'Orbitron_700Bold',
+    fontSize: 9,
+    color: colors.textSecondary,
+    letterSpacing: 1,
+    marginLeft: 2,
+  },
   profileSection: {
     paddingHorizontal: 20,
     paddingBottom: 20,

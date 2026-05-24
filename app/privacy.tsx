@@ -16,10 +16,10 @@ export default function PrivacyPolicy() {
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 15) }]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <MaterialCommunityIcons name="chevron-left" size={28} color={colors.textPrimary} />
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
+          <MaterialCommunityIcons name="chevron-left" size={20} color={colors.textSecondary} />
+          <Text style={styles.backBtnText}>RETOUR</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>POLITIQUE DE CONFIDENTIALITÉ</Text>
       </View>
 
       <ScrollView
@@ -66,24 +66,30 @@ export default function PrivacyPolicy() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingBottom: 15,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
     backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: colors.primary + '18',
     zIndex: 10,
   },
-  backButton: {
-    padding: 8,
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    backgroundColor: colors.surface,
   },
-  headerTitle: {
-    fontFamily: 'SpaceMono_400Regular',
-    fontSize: 14,
-    color: colors.textPrimary,
-    fontWeight: 'bold',
-    marginLeft: 8,
+  backBtnText: {
+    fontFamily: 'Orbitron_700Bold',
+    fontSize: 9,
+    color: colors.textSecondary,
+    letterSpacing: 1,
+    marginLeft: 2,
   },
   scrollContainer: { flex: 1, backgroundColor: colors.background },
   scrollContent: { paddingHorizontal: 20, paddingTop: 20 },

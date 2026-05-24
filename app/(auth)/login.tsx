@@ -143,6 +143,13 @@ export default function Login() {
             </View>
           </View>
 
+          {/* Forgot password */}
+          <TouchableOpacity
+            style={styles.forgotLink}
+            onPress={() => router.push('/(auth)/forgot-password')}>
+            <Text style={styles.forgotLinkText}>Mot de passe oublié ?</Text>
+          </TouchableOpacity>
+
           {/* Submit */}
           <TouchableOpacity
             style={[styles.loginButton, isLoading && styles.buttonDisabled]}
@@ -290,5 +297,15 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_400Regular',
     fontSize: 12,
     color: colors.textSecondary,
+  },
+  forgotLink: {
+    alignSelf: 'flex-end',
+    marginBottom: 20,
+    marginTop: -8,
+  },
+  forgotLinkText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 12,
+    color: colors.primary,
   },
 });

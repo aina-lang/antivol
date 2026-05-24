@@ -186,7 +186,7 @@ export default function Dashboard() {
         style={styles.scrollContainer}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: Math.max(insets.bottom, 20) },
+          { paddingBottom: Math.max(insets.bottom, 20) + 80 },
         ]}>
 
         {/* Status badge */}
