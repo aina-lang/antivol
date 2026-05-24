@@ -15,44 +15,64 @@ interface StatusBadgeProps {
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ isActive, protectedCount }) => {
   const dotOpacity = useSharedValue(1);
+  const ringScale = useSharedValue(1);
+  const ringOpacity = useSharedValue(0.7);
 
   useEffect(() => {
-    dotOpacity.value = withRepeat(
-      withTiming(0.3, { duration: 1000 }),
-      -1, // boucle infinie
-      true // alternance fade in/out
-    );
-  }, [dotOpacity]);
+    // Dot blink
+    dotOpacity.value = withRepeat(withTiming(0.35, { duration: 900 }), -1, true);
+    // Expanding ring
+    ringScale.value = withRepeat(withTiming(2.8, { duration: 1600 }), -1, false);
+    ringOpacity.value = withRepeat(withTiming(0, { duration: 1600 }), -1, false);
+  }, [dotOpacity, ringScale, ringOpacity]);
 
-  const pulsingStyle = useAnimatedStyle(() => {
-    return {
-      opacity: dotOpacity.value,
-    };
-  });
+  const pulsingDotStyle = useAnimatedStyle(() => ({
+    opacity: dotOpacity.value,
+  }));
+
+  const expandingRingStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: ringScale.value }],
+    opacity: ringOpacity.value,
+  }));
+
+  const dotColor = isActive ? colors.success : colors.danger;
 
   return (
     <View
       style={[
         styles.container,
         {
-          borderColor: isActive ? colors.borderGlow : colors.border,
+          borderColor: isActive ? colors.primary + '40' : colors.border,
           backgroundColor: colors.surface,
         },
       ]}>
-      <Animated.View
-        style={[
-          styles.dot,
-          pulsingStyle,
-          {
-            backgroundColor: isActive ? colors.success : colors.danger,
-            shadowColor: isActive ? colors.success : colors.danger,
-          },
-        ]}
-      />
+      {/* Dot with expanding ring behind it */}
+      <View style={styles.dotWrapper}>
+        {isActive && (
+          <Animated.View
+            style={[
+              styles.dotRing,
+              expandingRingStyle,
+              { backgroundColor: dotColor + '30' },
+            ]}
+          />
+        )}
+        <Animated.View
+          style={[
+            styles.dot,
+            pulsingDotStyle,
+            {
+              backgroundColor: dotColor,
+              shadowColor: dotColor,
+            },
+          ]}
+        />
+      </View>
+
       <Text style={styles.text}>
         {isActive
-          ? `Réseau Actif • ${protectedCount} téléphones protégés`
-          : 'Service d’arrière-plan inactif'}
+          ? `Réseau Actif  ${protectedCount} téléphones protégés`
+          : "Service d'arrière-plan inactif"}
       </Text>
     </View>
   );
@@ -62,31 +82,43 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 24,
     borderWidth: 1,
     alignSelf: 'center',
-    shadowColor: colors.background,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  dotWrapper: {
+    width: 10,
+    height: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  dotRing: {
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    marginRight: 8,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
-    shadowRadius: 4,
+    shadowRadius: 5,
     elevation: 5,
   },
   text: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 11,
     color: colors.textPrimary,
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
 });

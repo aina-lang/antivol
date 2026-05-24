@@ -68,9 +68,9 @@ export const apiService = {
     return response.data;
   },
 
-  // Enregistrer cet appareil
-  async registerDevice(deviceId: string, model: string, expoPushToken?: string): Promise<any> {
-    const response = await api.post('/devices/register', { deviceId, model, expoPushToken });
+  // Enregistrer cet appareil (forceReplace=true pour remplacer un ancien appareil même perdu)
+  async registerDevice(deviceId: string, model: string, expoPushToken?: string, forceReplace?: boolean): Promise<any> {
+    const response = await api.post('/devices/register', { deviceId, model, expoPushToken, forceReplace });
     return response.data;
   },
 

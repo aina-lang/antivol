@@ -5,7 +5,9 @@ import Animated, {
   useAnimatedStyle,
   withRepeat,
   withTiming,
+  interpolateColor,
 } from 'react-native-reanimated';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../constants/colors';
 
 interface BleSignalCardProps {
@@ -15,17 +17,21 @@ interface BleSignalCardProps {
   onReportPress?: () => void;
 }
 
-// Calcul de la distance estimée basée sur le RSSI
 const estimateDistance = (rssi: number): number => {
-  // Formule simplifiée : Distance = 10^((MeasuredPower - RSSI) / (10 * N))
-  // MeasuredPower = RSSI à 1 mètre (typiquement -59 dBm)
-  // N = constante environnementale (typiquement entre 2 et 4, prenons 2.2)
   const measuredPower = -59;
   const n = 2.2;
   const ratio = (measuredPower - rssi) / (10 * n);
-  const distance = Math.pow(10, ratio);
-  return Math.round(distance * 10) / 10; // Arrondi à 1 décimale
+  return Math.round(Math.pow(10, ratio) * 10) / 10;
 };
+
+const getSignalBars = (rssi: number): number => {
+  if (rssi >= -50) return 4;
+  if (rssi >= -65) return 3;
+  if (rssi >= -80) return 2;
+  return 1;
+};
+
+const BAR_HEIGHTS = [6, 9, 12, 15];
 
 export const BleSignalCard: React.FC<BleSignalCardProps> = ({
   bleId,
@@ -33,19 +39,21 @@ export const BleSignalCard: React.FC<BleSignalCardProps> = ({
   timestamp,
   onReportPress,
 }) => {
-  const borderWidthAnim = useSharedValue(1);
+  const glowOpacity = useSharedValue(0.5);
+  const borderProgress = useSharedValue(0);
 
   useEffect(() => {
-    borderWidthAnim.value = withRepeat(withTiming(2.5, { duration: 1000 }), -1, true);
-  }, [borderWidthAnim]);
+    glowOpacity.value = withRepeat(withTiming(1, { duration: 900 }), -1, true);
+    borderProgress.value = withRepeat(withTiming(1, { duration: 1200 }), -1, true);
+  }, [glowOpacity, borderProgress]);
 
-  const animatedBorder = useAnimatedStyle(() => {
-    return {
-      borderWidth: borderWidthAnim.value,
-    };
-  });
+  const cardGlowStyle = useAnimatedStyle(() => ({
+    shadowOpacity: glowOpacity.value * 0.35,
+  }));
 
   const distance = estimateDistance(rssi);
+  const signalBars = getSignalBars(rssi);
+
   const timeStr = new Date(timestamp).toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
@@ -56,42 +64,76 @@ export const BleSignalCard: React.FC<BleSignalCardProps> = ({
     <Animated.View
       style={[
         styles.card,
-        animatedBorder,
-        {
-          borderColor: colors.danger,
-          backgroundColor: colors.surface,
-        },
+        cardGlowStyle,
+        { borderColor: colors.danger },
       ]}>
+      {/* Header row */}
       <View style={styles.header}>
-        <View style={styles.alertDotContainer}>
-          <View style={styles.alertDot} />
+        <View style={styles.alertTitleRow}>
+          <MaterialCommunityIcons
+            name="bluetooth-audio"
+            size={13}
+            color={colors.danger}
+            style={{ marginRight: 6 }}
+          />
           <Text style={styles.alertTitle}>APPAREIL PERDU DÉTECTÉ</Text>
         </View>
         <Text style={styles.timeText}>{timeStr}</Text>
       </View>
 
+      {/* Content row */}
       <View style={styles.content}>
         <View style={styles.infoBlock}>
-          <Text style={styles.label}>Adresse / ID BLE</Text>
+          <Text style={styles.label}>Adresse BLE</Text>
           <Text style={styles.value} numberOfLines={1}>
             {bleId}
           </Text>
+          {/* Signal strength bars */}
+          <View style={styles.signalBarsRow}>
+            {BAR_HEIGHTS.map((h, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.bar,
+                  {
+                    height: h,
+                    backgroundColor:
+                      i < signalBars ? colors.danger : colors.border,
+                    opacity: i < signalBars ? 1 : 0.4,
+                  },
+                ]}
+              />
+            ))}
+            <Text style={styles.rssiLabel}>{rssi} dBm</Text>
+          </View>
         </View>
 
         <View style={styles.distanceBlock}>
           <Text style={styles.distanceValue}>{distance}</Text>
-          <Text style={styles.distanceUnit}>mètres (est.)</Text>
+          <Text style={styles.distanceUnit}>m estimé</Text>
         </View>
       </View>
 
+      {/* Footer row */}
       <View style={styles.footer}>
-        <Text style={styles.rssiText}>Signal : {rssi} dBm</Text>
         {onReportPress ? (
           <TouchableOpacity style={styles.button} onPress={onReportPress}>
-            <Text style={styles.buttonText}>SIGNANLER POSITION</Text>
+            <MaterialCommunityIcons
+              name="map-marker-alert-outline"
+              size={12}
+              color={colors.textPrimary}
+              style={{ marginRight: 5 }}
+            />
+            <Text style={styles.buttonText}>SIGNALER POSITION</Text>
           </TouchableOpacity>
         ) : (
           <View style={styles.autoReportBadge}>
+            <MaterialCommunityIcons
+              name="shield-check-outline"
+              size={11}
+              color={colors.primary}
+              style={{ marginRight: 4 }}
+            />
             <Text style={styles.autoReportText}>AUTO-SIGNALÉ ANONYMEMENT</Text>
           </View>
         )}
@@ -102,31 +144,25 @@ export const BleSignalCard: React.FC<BleSignalCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 12,
+    borderRadius: 14,
+    borderWidth: 1.5,
     padding: 16,
     marginVertical: 8,
+    backgroundColor: colors.surface,
     shadowColor: colors.danger,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 14,
     elevation: 8,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
-  alertDotContainer: {
+  alertTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  alertDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.danger,
-    marginRight: 6,
   },
   alertTitle: {
     fontFamily: 'Orbitron_700Bold',
@@ -142,8 +178,8 @@ const styles = StyleSheet.create({
   content: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
+    alignItems: 'flex-end',
+    marginBottom: 14,
   },
   infoBlock: {
     flex: 1,
@@ -157,42 +193,57 @@ const styles = StyleSheet.create({
   },
   value: {
     fontFamily: 'SpaceMono_400Regular',
-    fontSize: 13,
+    fontSize: 12,
     color: colors.textPrimary,
+    marginBottom: 10,
+  },
+  signalBarsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 3,
+  },
+  bar: {
+    width: 5,
+    borderRadius: 2,
+  },
+  rssiLabel: {
+    fontFamily: 'SpaceMono_400Regular',
+    fontSize: 9,
+    color: colors.textSecondary,
+    marginLeft: 6,
+    marginBottom: 1,
   },
   distanceBlock: {
     alignItems: 'flex-end',
   },
   distanceValue: {
     fontFamily: 'SpaceMono_400Regular',
-    fontSize: 28,
+    fontSize: 32,
     color: colors.textPrimary,
-    lineHeight: 32,
+    lineHeight: 36,
     fontWeight: 'bold',
   },
   distanceUnit: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 9,
+    fontFamily: 'Inter_400Regular',
+    fontSize: 10,
     color: colors.textSecondary,
+    marginTop: 2,
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: colors.border,
     paddingTop: 12,
-  },
-  rssiText: {
-    fontFamily: 'SpaceMono_400Regular',
-    fontSize: 11,
-    color: colors.textSecondary,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   button: {
     backgroundColor: colors.danger,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    borderRadius: 7,
   },
   buttonText: {
     fontFamily: 'Orbitron_700Bold',
@@ -200,10 +251,12 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   autoReportBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.border,
-    paddingVertical: 4,
+    paddingVertical: 5,
     paddingHorizontal: 10,
-    borderRadius: 6,
+    borderRadius: 7,
     borderWidth: 1,
     borderColor: colors.borderGlow,
   },

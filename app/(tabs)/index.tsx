@@ -11,15 +11,13 @@ import { MapView } from '../../src/components/MapView';
 import { useLocation } from '../../src/hooks/useLocation';
 import { foregroundLocationService } from '../../src/background/foregroundService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { apiService } from '../../src/services/api';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as SecureStore from 'expo-secure-store';
+
 
 export default function Dashboard() {
   const {
     user,
     isServiceActive,
-    toggleService,
     detectedDevices,
     currentLocation,
     updateLocation,
@@ -139,56 +137,6 @@ export default function Dashboard() {
     }
   }, []);
 
-  // Activer/Désactiver le service en cliquant sur le Radar (Force un scan manuel instantané pour la démo)
-  const handleRadarPress = async () => {
-    try {
-      setMapLoading(true);
-      // 1. Récupérer les IDs perdus actifs sur le serveur
-      const lostIds = await apiService.getLostBLEIds();
-      
-      // 2. Filtrer notre propre appareil local pour ne pas s'auto-détecter
-      const localId = await SecureStore.getItemAsync('meshfind_local_device_id');
-      const filtered = lostIds.filter(id => id.toLowerCase() !== localId?.toLowerCase());
-
-      if (filtered.length > 0) {
-        // Simuler la détection immédiate de l'appareil perdu par ce Helper
-        const targetId = filtered[0];
-        const coords = await getCurrentLocation();
-        if (coords) {
-          await apiService.reportDetection({
-            bleId: targetId,
-            lat: coords.latitude,
-            lng: coords.longitude,
-            accuracy: coords.accuracy ?? 10,
-            timestamp: Date.now(),
-          });
-
-           Alert.alert(
-            'DETECTION TRANSMISE !',
-            `Succès ! Votre radar vient de capter le signal de l'appareil perdu "${targetId}". Ses coordonnées GPS ont été envoyées à la victime en temps réel.`,
-            [{ text: 'EXCELLENT', style: 'default' }]
-          );
-          return;
-        }
-      }
-
-      // Si aucun autre appareil n'est perdu sur le réseau
-      Alert.alert(
-        'PROTECTION ACTIVE',
-        'Votre récepteur Mesh BLE veille en arrière-plan en continu pour protéger votre téléphone et localiser les appareils perdus à Madagascar.',
-        [{ text: 'ENTENDU', style: 'default' }]
-      );
-    } catch (err: any) {
-      console.warn("Échec du scan manuel tactique:", err);
-      Alert.alert(
-        'PROTECTION ACTIVE',
-        'Votre récepteur Mesh BLE veille en arrière-plan en continu pour protéger votre téléphone et localiser les appareils perdus à Madagascar.',
-        [{ text: 'ENTENDU', style: 'default' }]
-      );
-    } finally {
-      setMapLoading(false);
-    }
-  };
 
   const insets = useSafeAreaInsets();
 
@@ -202,9 +150,6 @@ export default function Dashboard() {
           <Text style={styles.welcomeText}>OPÉRATEUR MESH</Text>
           <Text style={styles.userName}>{user?.name || 'ANONYME'}</Text>
         </View>
-        <TouchableOpacity style={styles.signalBadge} onPress={() => router.push('/(tabs)/profile')}>
-          <Text style={styles.signalText}>ID: {user?.id ? String(user.id).substring(0, 8) : 'OFF'} </Text>
-        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scrollContainer} contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, 20) }]}>
@@ -215,14 +160,7 @@ export default function Dashboard() {
 
         {/* Section Centrale Radar */}
         <View style={styles.radarSection}>
-          <TouchableOpacity onPress={handleRadarPress} activeOpacity={0.8}>
-            <RadarScanner devicesCount={protectedCount} isActive={isServiceActive} />
-          </TouchableOpacity>
-          <Text style={styles.radarHint}>
-            {isServiceActive
-              ? 'TAPOTEZ LE RADAR POUR PASSER HORS-LIGNE'
-              : 'TAPOTEZ LE RADAR POUR DÉMARRER LA SURVEILLANCE'}
-          </Text>
+          <RadarScanner devicesCount={protectedCount} isActive={isServiceActive} />
         </View>
 
         {/* Cartes d'alertes BLE détectées en temps réel à proximité */}
@@ -316,19 +254,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontWeight: 'bold',
   },
-  signalBadge: {
-    borderWidth: 1,
-    borderColor: colors.borderGlow,
-    backgroundColor: colors.surface,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-  },
-  signalText: {
-    fontFamily: 'SpaceMono_400Regular',
-    fontSize: 11,
-    color: colors.primary,
-  },
+
   badgeWrapper: {
     marginBottom: 24,
   },
@@ -339,14 +265,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-  },
-  radarHint: {
-    fontFamily: 'Orbitron_700Bold',
-    fontSize: 8,
-    color: colors.textSecondary,
-    letterSpacing: 1,
-    marginTop: 12,
-    textAlign: 'center',
   },
   alertSection: {
     marginVertical: 16,

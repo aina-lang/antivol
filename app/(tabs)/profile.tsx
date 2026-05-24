@@ -202,10 +202,12 @@ export default function Profile() {
     if (!localDevice) return;
     setIsSyncingDevice(true);
     try {
-      await registerCurrentDevice();
+      // forceReplace=true : remplace l'ancien appareil enregistré (même s'il était déclaré perdu)
+      // par ce téléphone physique actuel et annule la recherche active sur l'ancien
+      await registerCurrentDevice(true);
       Alert.alert(
-        '🔒 APPAREIL SÉCURISÉ',
-        `Cet appareil physique (${localDevice.model}) est à présent enregistré et protégé par votre compte de sécurité.`,
+        'APPAREIL REMPLACÉ ET SÉCURISÉ',
+        `Ce téléphone (${localDevice.model}) est maintenant votre appareil protégé. L'ancien appareil a été retiré du système.`,
         [{ text: 'EXCELLENT', style: 'default' }]
       );
     } catch (error: any) {
@@ -306,7 +308,7 @@ export default function Profile() {
         {/* Détecter si le téléphone physique actuel est différent de celui enregistré sur le serveur */}
         {localDevice && (!activeDevice || activeDevice.deviceId !== localDevice.deviceId) && (
           <View style={styles.section}>
-            <Text style={styles.sectionHeader}>🔔 SYNCHRONISATION DE L'APPAREIL</Text>
+            <Text style={styles.sectionHeader}>SYNCHRONISATION DE L'APPAREIL</Text>
             <View style={[styles.settingCard, { borderColor: colors.warning, borderWidth: 1.5 }]}>
               <View style={styles.settingHeader}>
                 <MaterialCommunityIcons name="cellphone-link" size={20} color={colors.warning} />
@@ -333,7 +335,7 @@ export default function Profile() {
 
         {localDevice && activeDevice && activeDevice.deviceId === localDevice.deviceId && (
           <View style={styles.section}>
-            <Text style={styles.sectionHeader}>📱 APPAREIL SYNCHRONISÉ</Text>
+            <Text style={styles.sectionHeader}>APPAREIL SYNCHRONISÉ</Text>
             <View style={[styles.settingCard, { borderColor: colors.success + '40' }]}>
               <View style={styles.settingHeader}>
                 <MaterialCommunityIcons name="cellphone-check" size={20} color={colors.success} />

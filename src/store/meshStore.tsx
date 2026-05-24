@@ -48,7 +48,7 @@ interface MeshContextType {
   resetPassword: (payload: { email: string; code: string; password?: string }) => Promise<any>;
   logout: () => Promise<void>;
   updateProfile: (payload: { name?: string; password?: string }) => Promise<void>;
-  registerCurrentDevice: () => Promise<void>;
+  registerCurrentDevice: (forceReplace?: boolean) => Promise<void>;
   loadMyDevices: () => Promise<void>;
   declareDeviceLost: (description?: string) => Promise<void>;
   declareDeviceSecured: () => Promise<void>;
@@ -186,6 +186,10 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (err: any) {
         if (err.message === 'Network Error' || !err.response) {
           console.log("[Suivi Detection] Telephone hors-ligne au demarrage (veille reseau).");
+        } else if (err.response?.status === 404) {
+          // L'appareil n'existe plus en DB (remplacé par forceReplace) → forcer un refresh
+          console.log("[Suivi Detection] Appareil introuvable (404), rafraichissement de la liste...");
+          if (isMounted) loadMyDevices().catch(() => {});
         } else {
           console.error("Erreur d'initialisation de l'ecouteur de detection:", err);
         }
@@ -211,24 +215,26 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Une nouvelle détection a été enregistrée !
           const newDetection = history[0]; // La plus récente est en premier
           
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title: 'Appareil repere !',
-              body: `Votre appareil "${lostDevice.model.toUpperCase()}" vient d'etre localise par le reseau communautaire MeshFind a Madagascar !`,
-              sound: true,
-              priority: Notifications.AndroidNotificationPriority.HIGH,
-            },
-            trigger: {
-              channelId: 'meshfind-alerts',
-            },
-          });
+          if (localDevice?.deviceId !== lostDevice.deviceId) {
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: 'Appareil repere !',
+                body: `Votre appareil "${lostDevice.model.toUpperCase()}" vient d'etre localise par le reseau communautaire MeshFind a Madagascar !`,
+                sound: true,
+                priority: Notifications.AndroidNotificationPriority.HIGH,
+              },
+              trigger: {
+                channelId: 'meshfind-alerts',
+              },
+            });
 
-          addAlert({
-            title: 'Appareil repere !',
-            body: `Localise a ${new Date(parseInt(newDetection.timestamp)).toLocaleTimeString()}`,
-            lat: parseFloat(newDetection.latitude),
-            lng: parseFloat(newDetection.longitude),
-          });
+            addAlert({
+              title: 'Appareil repere !',
+              body: `Localise a ${new Date(parseInt(newDetection.timestamp)).toLocaleTimeString()}`,
+              lat: parseFloat(newDetection.latitude),
+              lng: parseFloat(newDetection.longitude),
+            });
+          }
         }
         
         // Mettre à jour le compte
@@ -236,6 +242,10 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (err: any) {
         if (err.message === 'Network Error' || !err.response) {
           console.log("[Suivi Detection] Telephone hors-ligne (veille reseau).");
+        } else if (err.response?.status === 404) {
+          // L'appareil n'existe plus en DB (remplacé par forceReplace) → forcer un refresh
+          console.log("[Suivi Detection] Appareil introuvable (404), rafraichissement de la liste...");
+          if (isMounted) loadMyDevices().catch(() => {});
         } else {
           console.error("Erreur de suivi temps-reel de detection:", err);
         }
@@ -246,7 +256,7 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [devices, prevHistoryCount]);
+  }, [devices, prevHistoryCount, loadMyDevices]);
 
   // Écouteur et scanner autonome pour le Helper (Téléphone B) en premier plan (Foreground Loop)
   useEffect(() => {
@@ -437,7 +447,7 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const registerCurrentDevice = async () => {
+  const registerCurrentDevice = async (forceReplace?: boolean) => {
     try {
       const details = await getLocalDeviceDetails();
       let pushToken = undefined;
@@ -447,7 +457,7 @@ export const MeshProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (pushErr) {
         console.warn("Echec d'obtention du token push lors de l'association", pushErr);
       }
-      await apiService.registerDevice(details.deviceId, details.model, pushToken);
+      await apiService.registerDevice(details.deviceId, details.model, pushToken, forceReplace);
       await loadMyDevices();
     } catch (error: any) {
       throw new Error(error.response?.data?.message || "Erreur lors de l'association de l'appareil");
