@@ -62,7 +62,7 @@ export default function About() {
         <View style={styles.linksSection}>
           <TouchableOpacity 
             style={styles.linkButton} 
-            onPress={() => Linking.openURL('https://meshfind.net/privacy')}>
+            onPress={() => router.push('/privacy')}>
             <MaterialCommunityIcons name="shield-account-outline" size={18} color={colors.textSecondary} />
             <Text style={styles.linkText}>Politique de confidentialité</Text>
             <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} style={{ marginLeft: 'auto' }} />
@@ -70,7 +70,7 @@ export default function About() {
 
           <TouchableOpacity 
             style={styles.linkButton} 
-            onPress={() => Linking.openURL('https://meshfind.net/terms')}>
+            onPress={() => router.push('/terms')}>
             <MaterialCommunityIcons name="file-document-outline" size={18} color={colors.textSecondary} />
             <Text style={styles.linkText}>Conditions d'utilisation</Text>
             <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} style={{ marginLeft: 'auto' }} />

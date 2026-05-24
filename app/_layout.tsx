@@ -65,6 +65,8 @@ function NavigationGuard() {
       <Stack.Screen name="declare-lost" options={{ presentation: 'modal' }} />
       <Stack.Screen name="profile" />
       <Stack.Screen name="about" />
+      <Stack.Screen name="privacy" />
+      <Stack.Screen name="terms" />
     </Stack>
   );
 }
